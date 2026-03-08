@@ -1,17 +1,32 @@
 document.addEventListener("DOMContentLoaded", function () {
-  var hero = document.querySelector(".smpt-header-hero");
+  var header = document.querySelector(".site-header");
+  var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  if (!hero) {
+  if (!header) {
     return;
   }
 
-  var sky = hero.querySelector(".smpt-header-hero__sky");
+  /* ── Aurora borealis blobs ── */
+  var aurora = document.createElement("div");
+  aurora.className = "smpt-aurora";
+  aurora.setAttribute("aria-hidden", "true");
+
+  var blobColors = ["gold", "rose", "red", "magenta", "burgundy", "violet", "navy", "skyblue", "aquamarine", "green"];
+  for (var b = 0; b < blobColors.length; b += 1) {
+    var blob = document.createElement("div");
+    blob.className = "smpt-aurora__blob smpt-aurora__blob--" + blobColors[b];
+    aurora.appendChild(blob);
+  }
+  header.insertBefore(aurora, header.firstChild);
+
+  /* ── Twinkling star particles ── */
+  var sky = header.querySelector(".smpt-header-hero__sky");
 
   if (!sky) {
     sky = document.createElement("div");
     sky.className = "smpt-header-hero__sky";
     sky.setAttribute("aria-hidden", "true");
-    hero.insertBefore(sky, hero.firstChild);
+    header.insertBefore(sky, header.firstChild);
   } else {
     sky.innerHTML = "";
   }
@@ -88,5 +103,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
   for (var j = 0; j < flareCount; j += 1) {
     addFlare();
+  }
+
+  /* ── Logo reveal: every 2 min, bring logo in front of senshi for 10 s ── */
+  var logo = document.querySelector(".smpt-header-hero__logo");
+
+  if (logo) {
+    var INTERVAL = 120000;
+    var mql = window.matchMedia("(max-width: 650px)");
+
+    function onFadebackEnd() {
+      logo.classList.remove("smpt-logo-fadeback");
+      logo.removeEventListener("animationend", onFadebackEnd);
+    }
+
+    function onRevealEnd() {
+      logo.removeEventListener("animationend", onRevealEnd);
+      logo.classList.remove("smpt-logo-reveal");
+      logo.classList.add("smpt-logo-fadeback");
+      logo.addEventListener("animationend", onFadebackEnd);
+    }
+
+    function revealLogo() {
+      if (reducedMotion.matches || !mql.matches || logo.classList.contains("smpt-logo-reveal") || logo.classList.contains("smpt-logo-fadeback")) {
+        return;
+      }
+      logo.addEventListener("animationend", onRevealEnd);
+      logo.classList.add("smpt-logo-reveal");
+    }
+
+    setInterval(revealLogo, INTERVAL);
   }
 });

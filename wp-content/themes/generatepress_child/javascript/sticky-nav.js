@@ -18,8 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return window.matchMedia("(max-width: 782px)").matches ? 46 : 32;
   }
 
-  function syncStickyState() {
-    var shouldStick = sentinel.getBoundingClientRect().top <= getAdminOffset();
+  function syncStickyState(shouldStick) {
     body.classList.toggle("smpt-nav-is-sticky", shouldStick);
 
     if (shouldStick) {
@@ -31,11 +30,50 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  if ("ResizeObserver" in window) {
-    new ResizeObserver(syncStickyState).observe(nav);
+  function updateObserver() {
+    if (!("IntersectionObserver" in window)) {
+      syncStickyState(sentinel.getBoundingClientRect().top <= getAdminOffset());
+      return;
+    }
+
+    if (window.smptStickyObserver) {
+      window.smptStickyObserver.disconnect();
+    }
+
+    window.smptStickyObserver = new IntersectionObserver(
+      function (entries) {
+        var entry = entries[0];
+        syncStickyState(entry.intersectionRatio < 1);
+      },
+      {
+        threshold: [1],
+        rootMargin: "-" + getAdminOffset() + "px 0px 0px 0px"
+      }
+    );
+
+    window.smptStickyObserver.observe(sentinel);
   }
 
-  window.addEventListener("scroll", syncStickyState, { passive: true });
-  window.addEventListener("resize", syncStickyState);
-  syncStickyState();
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(function () {
+      if (body.classList.contains("smpt-nav-is-sticky")) {
+        sentinel.style.height = nav.offsetHeight + "px";
+        body.style.setProperty("--smpt-sticky-nav-height", nav.offsetHeight + "px");
+      }
+    }).observe(nav);
+  }
+
+  if (!("IntersectionObserver" in window)) {
+    function fallbackScrollHandler() {
+      syncStickyState(sentinel.getBoundingClientRect().top <= getAdminOffset());
+    }
+
+    window.addEventListener("scroll", fallbackScrollHandler, { passive: true });
+    window.addEventListener("resize", fallbackScrollHandler);
+    fallbackScrollHandler();
+    return;
+  }
+
+  window.addEventListener("resize", updateObserver);
+  updateObserver();
 });
