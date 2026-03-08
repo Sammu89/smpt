@@ -1,0 +1,24 @@
+audio {
+  -webkit-transition: background-color .5s ease, border-radius .5s ease, outline .5s ease;
+  background-color: #DFBB3A;
+  border-radius: 5px 30px;
+  display: block;
+  margin-bottom: 55px;
+  max-width: 400px;
+  outline: solid 2px #DFBB3A;
+  overflow: hidden;
+  transition: background-color .5s ease, border-radius .5s ease, outline .5s ease;
+  width: 100%;
+}
+
+audio.isPlaying {
+  -webkit-transition: background-color .5s ease, border-radius .5s ease, outline .5s ease;
+  background-color: var(--cor-primaria);
+  border-radius: 30px 5px;
+  outline: solid 2px var(--cor-primaria);
+}
+
+audio::-webkit-media-controls-panel {
+  background-color: transparent;
+  border-radius: inherit;
+}

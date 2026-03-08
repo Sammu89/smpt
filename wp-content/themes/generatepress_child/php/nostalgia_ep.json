@@ -1,0 +1,898 @@
+{
+    "sources": {
+        "tvi": "https://sm-portugal.com/wp-content/uploads/2025/01/tvi.webp",
+        "tvi_old": "https://sm-portugal.com/wp-content/uploads/2025/01/tvi_antigo.webp",
+        "sic": "https://sm-portugal.com/wp-content/uploads/2025/01/sic.webp",
+        "panda": "https://sm-portugal.com/wp-content/uploads/2025/03/panda.webp"
+    },
+    "episodios": {
+        "temporada1": {
+            "1": [
+                "k750ivIsNFU6jsCd322"
+            ],
+            "6": [
+                "k48tDuBLyGgh6oCd31Y"
+            ],
+            "12": [
+                {
+                    "url1": "k5Oga7aDHV2drXCd324",
+                    "source1": "tvi_old"
+                }
+            ],
+            "13": [
+                {
+                    "url1": "k7vWRBcVNEW3a4Cd31U",
+                    "source1": "tvi_old"
+                }
+            ],
+            "14": [
+                {
+                    "url1": "k4nLawTZK8L3hhCd31W",
+                    "source1": "tvi_old"
+                }
+            ],
+            "15": [
+                {
+                    "url1": "k7x5lNCcrRekS1CdIJU",
+                    "source1": "tvi_old"
+                }
+            ],
+            "17": [
+                {
+                    "url1": "k2r0aFCj9DpnOzCdIJW",
+                    "source1": "tvi_old"
+                }
+            ],
+            "18": [
+                {
+                    "url1": "k5OH6e9YvHjjA0CdIJS",
+                    "source1": "tvi_old"
+                }
+            ],
+            "19": [
+                {
+                    "url1": "k6qIZSyG0qEyQnCdIJO",
+                    "source1": "tvi_old"
+                }
+            ],
+            "20": [
+                {
+                    "url1": "k46WWPbF1iGFzPCdIK4",
+                    "source1": "tvi_old"
+                }
+            ],
+            "21": [
+                {
+                    "url1": "k59dYrpuY4uNzACdIJM",
+                    "source1": "tvi_old"
+                }
+            ],
+            "22": [
+                {
+                    "url1": "kUcEmDWm5M61xZCdIK2",
+                    "source1": "tvi_old"
+                }
+            ],
+            "23": [
+                {
+                    "url1": "k2vjZCyxWX5lgFCdIK0",
+                    "source1": "tvi_old"
+                }
+            ],
+            "24": [
+                {
+                    "url1": "k3uea7jy4dSZuRCdIJQ",
+                    "source1": "tvi_old"
+                }
+            ],
+            "25": [
+                {
+                    "url1": "k68cfOlSwu6MJyCdIK6",
+                    "source1": "tvi_old"
+                }
+            ],
+            "26": [
+                {
+                    "url1": "k2XmP1HnU60rXhCeaPW",
+                    "source1": "tvi_old"
+                }
+            ],
+            "27": [
+                {
+                    "url1": "k7lRNe0eJvZFv4CeaQ0",
+                    "source1": "tvi_old"
+                }
+            ],
+            "28": [
+                {
+                    "url1": "k4wnYHJixFOsQwCeaPU",
+                    "source1": "tvi_old"
+                }
+            ],
+            "29": [
+                "k1sjh07YoxGuBSCeaQ2"
+            ],
+            "30": [
+                "k2Xd8zoUDeUEpkCeaPS"
+            ],
+            "31": [
+                "k4k5al6eGTLrMgCeaPY"
+            ],
+            "32": [
+                "1asMlBfjiUa3KCeaQ4"
+            ],
+            "33": [
+                "k3kWkQHXnG4BXNCeaQ6"
+            ],
+            "34": [
+                "k3D5jy055xtR1wCeaQa"
+            ],
+            "35": [
+                "k36O0bHOQVHmWmCeaQ8"
+            ],
+            "36": [
+                "k55ktnUt2nNFOLCfteq"
+            ],
+            "37": [
+                "k1zsJeUKGu9ysWCftem"
+            ],
+            "38": [
+                "k2ItpCAX2L3VJtCftek"
+            ],
+            "39": [
+                "k1XGUSlOa0PWyFCfteo"
+            ],
+            "40": [
+                "k5bGhJmeTDmZfpCfteg"
+            ],
+            "42": [
+                "kxUp1FslOZxNyHCfteu"
+            ],
+            "43": [
+                "k3p3r9YO5i2VKMCftei"
+            ],
+            "44": [
+                "k7iueY5i006KuQCftes"
+            ],
+            "45": [
+                "k5rNlVh6n4c4VfCftew"
+            ],
+            "46": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6davtm",
+                    "source": "tvi"
+                }
+            ]
+        },
+        "temporada2": {
+            "47": [
+                "k699KUWCqiISmSCgDUI"
+            ],
+            "48": [
+                {
+                    "url1": "k7rhWnvwRM1WmcCnewI",
+                    "source1": "sic",
+                    "url2": "k5tDV5UBM0O4f3CgDUw",
+                    "source2": "tvi"
+                }
+            ],
+            "49": [
+                {
+                    "url1": "k5r2ZY4jsT7uvHCmPmG",
+                    "source1": "sic"
+                }
+            ],
+            "51": [
+                {
+                    "url1": "k5QaPzfbNqLqiZCrOnk",
+                    "source1": "sic",
+                    "url2": "",
+                    "source2": "tvi"
+                }
+            ],
+            "52": [
+                {
+                    "url1": "k4Sq1nVUdcyhONCnewK",
+                    "source1": "sic",
+                    "url2": "k2QFnEGDSOchmkCgDUq",
+                    "source2": "tvi"
+                }
+            ],
+            "53": [
+                "k3LRQHY0q3dQpCCgDUy"
+            ],
+            "54": [
+                {
+                    "url1": "k5i02rfzxelLkXCmPmE",
+                    "source1": "sic",
+                    "url2": "k1zjFyJ0DN3Y1sCgDUA",
+                    "source2": "tvi"
+                }
+            ],
+            "55": [
+                ""
+            ],
+            "56": [
+                "k3gBISyi9j4PQpCgDUs"
+            ],
+            "57": [
+                {
+                    "url1": "k4SJZMbTVJTWtnCmPmI",
+                    "source1": "sic",
+                    "url2": "k2NUlRMJZahZ1KCgDUu",
+                    "source2": "tvi"
+                }
+            ],
+            "58": [
+                {
+                    "url1": "k3O6iLe7SqrjH3CnH4W",
+                    "source1": "sic",
+                    "url2": "k41xqodXH9MYg3CgDUC",
+                    "source2": "tvi"
+                }
+            ],
+            "59": [
+                {
+                    "url1": "k5M0J5RDGZzfAaCnexa",
+                    "source1": "sic",
+                    "url2": "k30ua2xTnJKkRdCgDUE",
+                    "source2": "tvi"
+                }
+            ],
+            "60": [
+                "k2ocgGVjH8TYUCCll9o"
+            ],
+            "61": [
+                "k49WvMVjk4ynGDCll9u"
+            ],
+            "62": [
+                {
+                    "url1": "k58PPupCetsvfZCiSh6",
+                    "source1": "sic",
+                    "url2": "k26uh2oPdlmPHXCll9k",
+                    "source2": "tvi"
+                }
+            ],
+            "63": [
+                {
+                    "url1": "k28w4Ak4NWzCgiCi4eE",
+                    "source1": "sic",
+                    "url2": "k5W78gGX3t3xvYCll9m",
+                    "source2": "tvi"
+                }
+            ],
+            "64": [
+                {
+                    "url1": "k3RMUIPjdkyqh4CiSh4",
+                    "source1": "sic"
+                }
+            ],
+            "65": [
+                {
+                    "url1": "k2toI4Z8NhfIHPCiSh0",
+                    "source1": "sic"
+                }
+            ],
+            "66": [
+                "k4Ec1JiI5xGyPvCll9s"
+            ],
+            "67": [
+                {
+                    "url1": "k7xftmP4WCVfxzCiSgY",
+                    "source1": "sic",
+                    "url2": "k5q6hNjRRnDDbCCll9q",
+                    "source2": "tvi"
+                }
+            ],
+            "68": [
+                {
+                    "url1": "k1vV7KSGvrgfmcCiSh2",
+                    "source1": "sic",
+                    "url2": "kbAkSEM2RNuC0KCll9w",
+                    "source2": "tvi"
+                }
+            ],
+            "69": [
+                {
+                    "url1": "kazd6GHerlEcqsCiShc",
+                    "source1": "sic"
+                }
+            ],
+            "70": [
+                {
+                    "url1": "k2XMEPS9DfNPymCiShe",
+                    "source1": "sic",
+                    "url2": "k4Cwc6gw7qT4C2Cll9A",
+                    "source2": "tvi"
+                }
+            ],
+            "71": [
+                "k2WrKhpQNnQJuzCll9y"
+            ],
+            "72": [
+                {
+                    "url1": "k6Hk6DdwxJ4iLqCqjFw",
+                    "source1": "sic",
+                    "url2": "k4b4Dhrh3HKll2CG4uq",
+                    "source2": "tvi"
+                }
+            ],
+            "73": [
+                {
+                    "url1": "k6gPb5LSS4uPcOCqjFq",
+                    "source1": "sic",
+                    "url2": "k2l9rhX3Kp8Gs2CG4uk",
+                    "source2": "tvi"
+                }
+            ],
+            "74": [
+                {
+                    "url1": "kNYtvxjbkNRIGnCqjFA",
+                    "source1": "sic"
+                }
+            ],
+            "75": [
+                {
+                    "url1": "k55jHPpNtY4eKWCqjFu",
+                    "source1": "sic",
+                    "url2": "k5IYxQVaqPLzlWCG4HQ",
+                    "source2": "tvi"
+                }
+            ],
+            "76": [
+                {
+                    "url1": "k4TD7ZNZhF7Pd4CqjFs",
+                    "source1": "sic",
+                    "url2": "k1CUlrvAw1DwplCG4uo",
+                    "source2": "tvi"
+                }
+            ],
+            "77": [
+                {
+                    "url1": "k2TsQeCuE0WyIFCqjFC",
+                    "source1": "sic",
+                    "url2": "k5khLum0WJIjaVCG4ui",
+                    "source2": "tvi"
+                }
+            ],
+            "78": [
+                {
+                    "url1": "kd2Sgb0vVT6KbHCqjIk",
+                    "source1": "sic"
+                }
+            ],
+            "79": [
+                {
+                    "url1": "k6L09UVtebTSKUCiSgW",
+                    "source1": "sic",
+                    "url2": "k6iSdnQdgTlND8CHFr2",
+                    "source2": "tvi"
+                }
+            ],
+            "80": [
+                {
+                    "url1": "k5ycnbLoQ1v2BbCqjIi",
+                    "source1": "sic",
+                    "url2": "kE4aKBEmn43P54CG4us",
+                    "source2": "tvi"
+                }
+            ],
+            "81": [
+                {
+                    "url1": "k4iFlkPZRQhK2XCmt70",
+                    "source1": "sic"
+                }
+            ],
+            "82": [
+                {
+                    "url1": "k23CTSXmvvHrcECmtju",
+                    "source1": "sic",
+                    "url2": "k5tSigRhTT4dARCHFry",
+                    "source2": "tvi"
+                }
+            ],
+            "83": [
+                {
+                    "url1": "k2I3Y4C3Io17QzCmt72",
+                    "source1": "sic",
+                    "url2": "k2XHprlt8QkRoxCHFrw",
+                    "source2": "tvi"
+                }
+            ],
+            "84": [
+                {
+                    "url1": "k3J1fxLYlDDKKTCqjIm",
+                    "source1": "sic",
+                    "url2": "k4RxAv8BpcsyZrCFDNW",
+                    "source2": "tvi"
+                }
+            ],
+            "85": [
+                {
+                    "url1": "k7KqXi27M0426VCHFvM",
+                    "source1": "sic",
+                    "url2": "k34C6IGrJ0fufYCFDPk",
+                    "source2": "tvi"
+                }
+            ],
+            "86": [
+                ""
+            ],
+            "87": [
+                "k4nlmHvq48EJdcCFDMS"
+            ],
+            "88": [
+                "k22uWFEHgeFmlNCG4t4"
+            ],
+            "89": [
+                "khKZSREEuDbYFWCG4t2"
+            ]
+        },
+        "temporada3": {
+            "90": [
+                {
+                    "url1": "k3ZTcsYksvfKztCJekK",
+                    "source1": "panda"
+                }
+            ],
+            "91": [
+                "k2m9imksmIx9IfCHFBi"
+            ],
+            "92": [
+                "k4mtDwjSJyvFwrCHFBm"
+            ],
+            "93": [
+                "k4pkb6w9rEVeBqCHFBk"
+            ],
+            "94": [
+                "k3yBcHR9dKuAPcCtxJm"
+            ],
+            "95": [
+                "kNS3FQ92GUK7ekCtxJo"
+            ],
+            "96": [
+                "k4r2lgQ34BkMg2CtxJi"
+            ],
+            "97": [
+                "k6XeRj5WHViKcGCtxJq"
+            ],
+            "98": [
+                "kB8PhJgixjfstkCtxJk"
+            ],
+            "99": [
+                "k6MesXkNyH1hvgCtxJs"
+            ],
+            "100": [
+                "k54lQjNCvRtZODCtxJw"
+            ],
+            "101": [
+                "kl2bZaTV5vODpvCtxJu"
+            ],
+            "102": [
+                "k42XJqERHLvXMeCvAhe"
+            ],
+            "103": [
+                "k4mBDjplE7lrxaCvAhu"
+            ],
+            "104": [
+                "k1REnu14MAhwKcCvAhw"
+            ],
+            "105": [
+                "k5lAsTQux23TLxCvAhm"
+            ],
+            "106": [
+                "k2NqBFFVFnWFQzCvAho"
+            ],
+            "107": [
+                "k44bs4AwaZvReXCvAhs"
+            ],
+            "108": [
+                "k1zkONw8GHupjFCvAhq"
+            ],
+            "109": [
+                "k7BVgq2oVKrLXxCvAhA"
+            ],
+            "110": [
+                "k3Yty4xai6kVgdCvAhE"
+            ],
+            "111": [
+                "k40iFGiWv4TSwACvAhy"
+            ],
+            "112": [
+                "k6KalfOjujCkkSCvAhC"
+            ],
+            "113": [
+                "k2Ismvj2kPq8YrD5PYi"
+            ],
+            "114": [
+                "k3pIfuHJbiBalID5PYe"
+            ],
+            "115": [
+                "x9jxfvw"
+            ],
+            "116": [
+                "k3vKvykyvY2HPKD5PYc"
+            ],
+            "117": [
+                "x9jxfw0"
+            ],
+            "118": [
+                ""
+            ],
+            "119": [
+                ""
+            ],
+            "120": [
+                "k7IbhgGGt8tJKjCvBie"
+            ],
+            "121": [
+                "k507WwJIHuq9jrCvBic"
+            ],
+            "122": [
+                "k2WLmlpfG18wYnCwai4"
+            ],
+            "123": [
+                ""
+            ],
+            "124": [
+                "k7oYPG8bA2CXeVCwahY"
+            ],
+            "125": [
+                ""
+            ],
+            "126": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkltu",
+                    "source": "tvi"
+                }
+            ],
+            "127": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vklto",
+                    "source": "tvi"
+                }
+            ]
+        },
+        "temporada4": {
+            "128": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkltk",
+                    "source": "tvi"
+                }
+            ],
+            "129": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vklte",
+                    "source": "tvi"
+                }
+            ],
+            "130": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vklt2",
+                    "source": "tvi"
+                }
+            ],
+            "131": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkm20",
+                    "source": "tvi"
+                }
+            ],
+            "132": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkm22",
+                    "source": "tvi"
+                }
+            ],
+            "133": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkm28",
+                    "source": "tvi"
+                }
+            ],
+            "134": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkm2i",
+                    "source": "tvi"
+                }
+            ],
+            "135": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkm2o",
+                    "source": "tvi"
+                }
+            ],
+            "136": [
+                ""
+            ],
+            "137": [
+                ""
+            ],
+            "138": [
+                ""
+            ],
+            "139": [
+                ""
+            ],
+            "140": [
+                ""
+            ],
+            "141": [
+                ""
+            ],
+            "142": [
+                ""
+            ],
+            "143": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkmay",
+                    "source": "tvi"
+                }
+            ],
+            "144": [
+                "k2qqZNv8SEizXfCFDWA"
+            ],
+            "145": [
+                "k2b2sYoholzhqUCFDWy"
+            ],
+            "146": [
+                "k4OtaTvql2Hc4eCFDWu"
+            ],
+            "147": [
+                ""
+            ],
+            "148": [
+                ""
+            ],
+            "149": [
+                ""
+            ],
+            "150": [
+                ""
+            ],
+            "151": [
+                ""
+            ],
+            "152": [
+                ""
+            ],
+            "153": [
+                ""
+            ],
+            "154": [
+                ""
+            ],
+            "155": [
+                ""
+            ],
+            "156": [
+                ""
+            ],
+            "157": [
+                ""
+            ],
+            "158": [
+                ""
+            ],
+            "159": [
+                ""
+            ],
+            "160": [
+                ""
+            ],
+            "161": [
+                ""
+            ],
+            "162": [
+                ""
+            ],
+            "163": [
+                ""
+            ],
+            "164": [
+                ""
+            ],
+            "165": [
+                ""
+            ],
+            "166": [
+                ""
+            ]
+        },
+        "temporada5": {
+            "167": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s0xkt",
+                    "source": "tvi"
+                }
+            ],
+            "168": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s0xyj",
+                    "source": "tvi"
+                }
+            ],
+            "169": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s0xyb",
+                    "source": "tvi"
+                }
+            ],
+            "170": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s0xy5",
+                    "source": "tvi"
+                }
+            ],
+            "171": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s140z",
+                    "source": "tvi"
+                }
+            ],
+            "172": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s140t",
+                    "source": "tvi"
+                }
+            ],
+            "173": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s141b",
+                    "source": "tvi"
+                }
+            ],
+            "174": [],
+            "175": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s142n",
+                    "source": "tvi"
+                }
+            ],
+            "176": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkkiq",
+                    "source": "tvi"
+                }
+            ],
+            "177": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkkiu",
+                    "source": "tvi"
+                }
+            ],
+            "178": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkkj4",
+                    "source": "tvi"
+                }
+            ],
+            "179": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkkjk",
+                    "source": "tvi"
+                }
+            ],
+            "180": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkkjm",
+                    "source": "tvi"
+                }
+            ],
+            "181": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkkju",
+                    "source": "tvi"
+                }
+            ],
+            "182": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6vkkk0",
+                    "source": "tvi"
+                }
+            ],
+            "183": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s144p",
+                    "source": "tvi"
+                }
+            ],
+            "184": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s168x",
+                    "source": "tvi"
+                }
+            ],
+            "185": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s169h",
+                    "source": "tvi"
+                }
+            ],
+            "186": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s169r",
+                    "source": "tvi"
+                }
+            ],
+            "187": [
+                ""
+            ],
+            "188": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s16ar",
+                    "source": "tvi"
+                }
+            ],
+            "189": [
+                ""
+            ],
+            "190": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6s16ap",
+                    "source": "tvi"
+                }
+            ],
+            "191": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjhtj",
+                    "source": "tvi"
+                }
+            ],
+            "192": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjhtf",
+                    "source": "tvi"
+                }
+            ],
+            "193": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjhtb",
+                    "source": "tvi"
+                }
+            ],
+            "194": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjht7",
+                    "source": "tvi"
+                }
+            ],
+            "195": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjht3",
+                    "source": "tvi"
+                }
+            ],
+            "196": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjht1",
+                    "source": "tvi"
+                }
+            ],
+            "197": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjhzb",
+                    "source": "tvi"
+                }
+            ],
+            "198": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjhzd",
+                    "source": "tvi"
+                }
+            ],
+            "199": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjhzf",
+                    "source": "tvi"
+                }
+            ],
+            "200": [
+                {
+                    "externalurl": "https://rumble.com/embed/v6sjhzh",
+                    "source": "tvi"
+                }
+            ]
+        }
+    }
+}

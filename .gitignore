@@ -1,0 +1,46 @@
+# Ignore everything by default
+*
+
+# Allow Git to traverse directories
+!*/
+!/.gitignore
+!/README.md
+
+# Track only the custom site code we maintain
+!wp-content/
+!wp-content/mu-plugins/
+!wp-content/mu-plugins/**
+!wp-content/themes/
+!wp-content/themes/generatepress_child/
+!wp-content/themes/generatepress_child/**
+
+# Never track secrets or generated artifacts
+wp-config.php
+*.sql
+*.zip
+*.tar
+*.gz
+*.log
+
+# Explicitly ignore the rest of wp-content
+wp-content/plugins/
+wp-content/uploads/
+wp-content/languages/
+wp-content/ai1wm-backups/
+wp-content/updraft/
+wp-content/upgrade/
+wp-content/upgrade-temp-backup/
+wp-content/wflogs/
+wp-content/wphb-cache/
+wp-content/wpo-cache/
+wp-content/smush-webp/
+wp-content/debug.log
+wp-content/object-cache.php
+wp-content/advanced-cache.php
+wp-content/object-cache.php.disabled
+wp-content/advanced-cache.php.disabled
+
+# Exclude obvious legacy/unused child-theme artifacts
+wp-content/themes/generatepress_child/bloquear_visita/
+wp-content/themes/generatepress_child/screenshot.png
+wp-content/themes/generatepress_child/imagens/grok-image-*.png

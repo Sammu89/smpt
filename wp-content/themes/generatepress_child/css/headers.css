@@ -1,0 +1,143 @@
+/* General Styles */
+h1.single-post-title, h2 {
+  font-variant: small-caps;
+  font-size: 1.8em; /* Converted to relative units */
+  overflow: hidden;
+  padding-bottom: 5px;
+}
+
+h2.lua, .single-post-title {
+  font-size: 25px;
+  background-image: linear-gradient(to right, var(--cor-primaria) 55%, transparent 65%);
+  padding-bottom: 5px;
+  animation-duration: 30s;
+}
+
+
+h2.wp-block-heading {
+  font-size: 21px !important;
+}
+
+h2.header, .single-post-title {
+  color: var(--cor-primaria);
+  font-size: 1.5em;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  border-bottom: none !important;
+}
+
+h2.estrela, h3.estrela, .lua, .single-post-title {
+  background-size: 200% 2px;
+  background-position: 100% 100%;
+  background-repeat: no-repeat;
+  animation: mudarfundo infinite linear;
+}
+
+h2.estrela {
+  margin-top: 25px;
+  background-image: linear-gradient(to right, var(--cor-secundaria), rgba(219, 180, 37, 0) 70%);
+  animation-duration: 40s;
+}
+
+h3.subheader {
+  color: gray;
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-left: 43px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--cor-primaria);
+  margin-bottom: 10px;
+}
+
+/* Decorative Icons */
+h2.estrela::before, h3.estrela::before, .lua::before {
+  content: url(https://sm-portugal.com/wp-content/uploads/2024/07/estrela.webp);
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.lua::before {
+  content: url(https://sm-portugal.com/wp-content/uploads/2024/08/minilua.webp);
+}
+
+.lualuna::before, .single-post-title::before {
+  content: "";
+  display: inline-block;
+  background: url(https://sm-portugal.com/wp-content/uploads/2024/08/luna_cabecalho.webp) no-repeat;
+  height: 90px;
+  width: 90px;
+  position: relative;
+  top: 25px;
+}
+
+/* Positional Adjustments */
+h2.blog-entry-title, h3.lua {
+  position: relative;
+  margin-top: 40px;
+}
+
+/* Utility Adjustments */
+h2::before, h3::before {
+  margin-right: 10px;
+}
+
+
+
+ul.estrela,
+.nav_manga {
+  list-style: none;
+  padding: 0;
+  margin-left: 0;
+}
+
+.nav_manga li {
+  margin-bottom: 10px;
+}
+
+.nav_manga li a {
+  position: relative;
+  text-decoration: none;
+}
+
+.nav_manga li a::before,
+ul.mega-sub-menu li.mega-menu-item a::before,
+.estrela li::before {
+  content: "★";
+  color: #ffd700;
+  display: inline-block;
+  margin-right: 0.5em;
+  width: 1em;
+}
+
+.nav_manga li a:hover {
+  font-weight: 700;
+}
+
+/* Separador Cristal */
+
+hr.wp-block-separator {
+    border: none;
+	width: 380px !important;
+    height: 30px;
+    background-image: url(https://sm-portugal.com/wp-content/uploads/2024/08/separador.webp);
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin: 20px auto;
+}
+@keyframes mudarfundo {
+
+0%, to { background-position: 100% 100% }
+
+50% { background-position: 0 100% }
+
+}
+
+
+@media (max-width: 767px) {
+
+h1, h2, h3, h4, h5, h6 { font-size: 160% }
+
+}
