@@ -48,11 +48,13 @@
 }
 
 .smpt-header-hero {
+	position: relative;
 	display: flex;
 	align-items: stretch;
 	justify-content: center;
 	width: 100%;
 	min-height: inherit;
+	overflow: hidden;
 }
 
 .smpt-header-hero__stage {

@@ -1,17 +1,17 @@
 document.addEventListener("DOMContentLoaded", function () {
-  var stage = document.querySelector(".smpt-header-hero__stage");
+  var hero = document.querySelector(".smpt-header-hero");
 
-  if (!stage) {
+  if (!hero) {
     return;
   }
 
-  var sky = stage.querySelector(".smpt-header-hero__sky");
+  var sky = hero.querySelector(".smpt-header-hero__sky");
 
   if (!sky) {
     sky = document.createElement("div");
     sky.className = "smpt-header-hero__sky";
     sky.setAttribute("aria-hidden", "true");
-    stage.insertBefore(sky, stage.firstChild);
+    hero.insertBefore(sky, hero.firstChild);
   } else {
     sky.innerHTML = "";
   }
