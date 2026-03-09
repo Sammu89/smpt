@@ -14,6 +14,8 @@ function smpt_generatepress_enqueue_styles() {
 	$theme   = wp_get_theme();
 	$version = $theme->get( 'Version' );
 
+	wp_enqueue_style( 'dashicons' );
+
 	wp_enqueue_style(
 		'noticias-style',
 		get_stylesheet_directory_uri() . '/css/noticias.css',
@@ -39,6 +41,12 @@ function smpt_generatepress_enqueue_styles() {
 		$version
 	);
 	wp_enqueue_style(
+		'smpt-member-area-style',
+		get_stylesheet_directory_uri() . '/css/member-area.css',
+		array( 'generate-style' ),
+		$version
+	);
+	wp_enqueue_style(
 		'botoes-style',
 		get_stylesheet_directory_uri() . '/css/botoes_e_links.css',
 		array( 'generate-style' ),
@@ -53,6 +61,7 @@ add_action( 'wp_enqueue_scripts', 'smpt_generatepress_enqueue_styles' );
 function smpt_generatepress_enqueue_scripts() {
 	$theme   = wp_get_theme();
 	$version = $theme->get( 'Version' );
+	$day_key = wp_date( 'Y-m-d' );
 
 	wp_enqueue_script(
 		'smpt-sticky-nav',
@@ -68,6 +77,12 @@ function smpt_generatepress_enqueue_scripts() {
 		array(),
 		$version,
 		true
+	);
+
+	wp_add_inline_script(
+		'smpt-header-sky',
+		'window.smptHeaderSeed = ' . wp_json_encode( $day_key ) . ';',
+		'before'
 	);
 }
 add_action( 'wp_enqueue_scripts', 'smpt_generatepress_enqueue_scripts' );

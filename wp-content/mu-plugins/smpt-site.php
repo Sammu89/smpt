@@ -28,6 +28,7 @@ $smpt_site_includes = array(
 	'/inc/access-control.php',
 	'/inc/access-preview.php',
 	'/inc/content-protection.php',
+	'/inc/member-area.php',
 	'/inc/modules.php',
 );
 

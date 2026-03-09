@@ -16,6 +16,12 @@ $smpt_senshi_uri = get_stylesheet_directory_uri() . '/imagens/senshi.png';
 $smpt_logo_size   = file_exists( $smpt_logo_path ) ? getimagesize( $smpt_logo_path ) : false;
 $smpt_senshi_size = file_exists( $smpt_senshi_path ) ? getimagesize( $smpt_senshi_path ) : false;
 ?>
+<div class="smpt-aurora-layer" aria-hidden="true">
+	<canvas class="smpt-aurora-canvas" aria-hidden="true"></canvas>
+</div>
+<div class="smpt-hero-background" aria-hidden="true"></div>
+<canvas class="smpt-stars-canvas" aria-hidden="true"></canvas>
+<div class="smpt-debug-exclusion-zone" aria-hidden="true"></div>
 <div class="smpt-header-hero">
 	<div class="smpt-hero-header">
 		<div class="smpt-header-hero__logo">

@@ -52,6 +52,15 @@ function smpt_handle_protected_content_redirects() {
 	}
 
 	if ( smpt_is_protected_page_template_request() || smpt_is_protected_tag_archive_request() || smpt_is_protected_tagged_single_request() ) {
+		if ( function_exists( 'smpt_access_log' ) ) {
+			smpt_access_log(
+				sprintf(
+					'Protected redirect: request=%s target=%s',
+					isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/',
+					home_url( '/' )
+				)
+			);
+		}
 		wp_safe_redirect( home_url( '/' ) );
 		exit;
 	}

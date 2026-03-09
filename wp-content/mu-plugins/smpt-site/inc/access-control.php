@@ -15,6 +15,14 @@ if ( ! defined( 'SMPT_ACCESS_COOKIE_TTL' ) ) {
 	define( 'SMPT_ACCESS_COOKIE_TTL', 3 * HOUR_IN_SECONDS );
 }
 
+if ( ! defined( 'SMPT_REQUEST_START' ) ) {
+	define( 'SMPT_REQUEST_START', microtime( true ) );
+}
+
+if ( ! defined( 'SMPT_REQUEST_ID' ) ) {
+	define( 'SMPT_REQUEST_ID', wp_generate_uuid4() );
+}
+
 /**
  * Get access-control configuration.
  *
@@ -43,6 +51,24 @@ function smpt_get_visitor_ip() {
 }
 
 /**
+ * Check whether an IP is private, loopback, or otherwise non-public.
+ *
+ * @param string $ip IP address.
+ * @return bool
+ */
+function smpt_is_private_or_reserved_ip( $ip ) {
+	if ( '' === $ip ) {
+		return false;
+	}
+
+	return false === filter_var(
+		$ip,
+		FILTER_VALIDATE_IP,
+		FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+	);
+}
+
+/**
  * Log access-control details when debugging is enabled.
  *
  * @param string $message Message to log.
@@ -55,6 +81,152 @@ function smpt_access_log( $message ) {
 
 	error_log( '[smpt-access] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 }
+
+/**
+ * Determine whether verbose request tracing should be enabled.
+ *
+ * @return bool
+ */
+function smpt_access_trace_enabled() {
+	static $enabled = null;
+
+	if ( null !== $enabled ) {
+		return $enabled;
+	}
+
+	$uri          = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+	$referer      = isset( $_SERVER['HTTP_REFERER'] ) ? (string) $_SERVER['HTTP_REFERER'] : '';
+	$has_preview  = isset( $_GET['smpt_preview_blocked'] ) || isset( $_REQUEST['smpt_preview_blocked'] ) || isset( $_GET['smpt_preview_toggle'] ) || isset( $_REQUEST['smpt_preview_toggle'] ) || ! empty( $_COOKIE['smpt_preview_blocked'] );
+	$is_admin_post = false !== strpos( $uri, 'admin-post.php' ) && false !== strpos( $uri, 'smpt_toggle_blocked_preview' );
+	$is_member_path = false !== strpos( $uri, '/download-s03/' ) || false !== strpos( $referer, '/download-s03/' );
+
+	$enabled = $has_preview || $is_admin_post || $is_member_path;
+
+	return $enabled;
+}
+
+/**
+ * Log a timed trace line for the current request.
+ *
+ * @param string $phase   Trace phase name.
+ * @param array  $context Additional context values.
+ * @return void
+ */
+function smpt_access_trace( $phase, array $context = array() ) {
+	if ( ! smpt_access_trace_enabled() ) {
+		return;
+	}
+
+	$elapsed = defined( 'SMPT_REQUEST_START' ) ? microtime( true ) - SMPT_REQUEST_START : 0;
+	$parts   = array(
+		'id=' . SMPT_REQUEST_ID,
+		sprintf( 't=%.4fs', $elapsed ),
+		'phase=' . $phase,
+	);
+
+	foreach ( $context as $key => $value ) {
+		if ( is_bool( $value ) ) {
+			$value = $value ? '1' : '0';
+		} elseif ( is_scalar( $value ) ) {
+			$value = (string) $value;
+		} else {
+			$value = wp_json_encode( $value );
+		}
+
+		$parts[] = $key . '=' . $value;
+	}
+
+	smpt_access_log( '[trace] ' . implode( ' ', $parts ) );
+}
+
+/**
+ * Log the beginning of traced requests.
+ *
+ * @return void
+ */
+function smpt_access_trace_request_start() {
+	smpt_access_trace(
+		'request_start',
+		array(
+			'method'        => $_SERVER['REQUEST_METHOD'] ?? 'GET',
+			'uri'           => isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/',
+			'referer'       => isset( $_SERVER['HTTP_REFERER'] ) ? wp_unslash( $_SERVER['HTTP_REFERER'] ) : '',
+			'preview_query' => isset( $_REQUEST['smpt_preview_blocked'] ) ? wp_unslash( $_REQUEST['smpt_preview_blocked'] ) : '',
+			'preview_toggle'=> isset( $_REQUEST['smpt_preview_toggle'] ) ? wp_unslash( $_REQUEST['smpt_preview_toggle'] ) : '',
+			'preview_cookie'=> isset( $_COOKIE['smpt_preview_blocked'] ) ? wp_unslash( $_COOKIE['smpt_preview_blocked'] ) : '',
+		)
+	);
+}
+add_action( 'muplugins_loaded', 'smpt_access_trace_request_start', 1 );
+
+add_action(
+	'init',
+	static function() {
+		smpt_access_trace( 'hook_init' );
+	},
+	9999
+);
+
+add_action(
+	'parse_request',
+	static function() {
+		smpt_access_trace( 'hook_parse_request' );
+	},
+	9999
+);
+
+add_action(
+	'wp',
+	static function() {
+		smpt_access_trace( 'hook_wp' );
+	},
+	9999
+);
+
+add_action(
+	'template_redirect',
+	static function() {
+		smpt_access_trace( 'hook_template_redirect' );
+	},
+	9999
+);
+
+add_filter(
+	'template_include',
+	static function( $template ) {
+		smpt_access_trace( 'hook_template_include', array( 'template' => $template ) );
+		return $template;
+	},
+	9999
+);
+
+/**
+ * Log late-stage traced requests.
+ *
+ * @return void
+ */
+function smpt_access_trace_request_summary() {
+	global $wpdb;
+
+	$decision = function_exists( 'smpt_get_visitor_access_decision' ) ? smpt_get_visitor_access_decision() : array();
+
+	smpt_access_trace(
+		'request_end',
+		array(
+			'uri'          => isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/',
+			'allowed'      => ! empty( $decision['allowed'] ),
+			'source'       => isset( $decision['source'] ) ? $decision['source'] : '',
+			'preview'      => function_exists( 'smpt_should_apply_blocked_preview' ) && smpt_should_apply_blocked_preview(),
+			'queries'      => isset( $wpdb->num_queries ) ? (int) $wpdb->num_queries : 0,
+			'memory_mb'    => round( memory_get_peak_usage( true ) / 1048576, 2 ),
+			'is_admin'     => is_admin(),
+			'doing_ajax'   => wp_doing_ajax(),
+			'doing_cron'   => wp_doing_cron(),
+			'status_guess' => http_response_code(),
+		)
+	);
+}
+add_action( 'shutdown', 'smpt_access_trace_request_summary', 10000 );
 
 /**
  * Get a stable signature for access-control cookies.
@@ -213,6 +385,13 @@ function smpt_lookup_country_code( $ip ) {
 		);
 	}
 
+	if ( smpt_is_private_or_reserved_ip( $ip ) ) {
+		return array(
+			'country' => 'UNKNOWN',
+			'source'  => 'private-ip',
+		);
+	}
+
 	$providers = array(
 		array(
 			'source' => 'ipwhois',
@@ -299,12 +478,18 @@ function smpt_get_visitor_access_decision() {
 	$now    = time();
 	$ip     = smpt_get_visitor_ip();
 
-	if ( function_exists( 'smpt_is_blocked_preview_enabled' ) && smpt_is_blocked_preview_enabled() ) {
+	if ( function_exists( 'smpt_should_apply_blocked_preview' ) && smpt_should_apply_blocked_preview() ) {
 		$decision = array(
 			'allowed' => false,
 			'country' => 'PREVIEW',
 			'source'  => 'admin-preview',
 			'exp'     => $now + SMPT_ACCESS_COOKIE_TTL,
+		);
+		smpt_access_log(
+			sprintf(
+				'Decision: allowed=no country=PREVIEW source=admin-preview request=%s',
+				isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'
+			)
 		);
 		return $decision;
 	}
@@ -315,6 +500,12 @@ function smpt_get_visitor_access_decision() {
 			'country' => 'LOGGED_IN',
 			'source'  => 'logged-in',
 			'exp'     => $now + SMPT_ACCESS_COOKIE_TTL,
+		);
+		smpt_access_log(
+			sprintf(
+				'Decision: allowed=yes country=LOGGED_IN source=logged-in request=%s',
+				isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'
+			)
 		);
 		return $decision;
 	}
@@ -397,3 +588,39 @@ function smpt_current_visitor_is_allowed() {
 	$decision = smpt_get_visitor_access_decision();
 	return ! empty( $decision['allowed'] );
 }
+
+/**
+ * Log slow front-end requests while debugging.
+ *
+ * @return void
+ */
+function smpt_log_slow_frontend_requests() {
+	if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return;
+	}
+
+	if ( ! defined( 'SMPT_REQUEST_START' ) ) {
+		return;
+	}
+
+	$duration = microtime( true ) - SMPT_REQUEST_START;
+
+	if ( $duration < 1 ) {
+		return;
+	}
+
+	$decision = smpt_get_visitor_access_decision();
+	$request  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+
+	smpt_access_log(
+		sprintf(
+			'Slow request: duration=%.3fs request=%s allowed=%s source=%s preview=%s',
+			$duration,
+			$request,
+			! empty( $decision['allowed'] ) ? 'yes' : 'no',
+			isset( $decision['source'] ) ? $decision['source'] : 'unknown',
+			( function_exists( 'smpt_should_apply_blocked_preview' ) && smpt_should_apply_blocked_preview() ) ? 'yes' : 'no'
+		)
+	);
+}
+add_action( 'shutdown', 'smpt_log_slow_frontend_requests', 9999 );
