@@ -64,7 +64,7 @@ function smpt_generatepress_enqueue_scripts() {
 
 	wp_enqueue_script(
 		'smpt-header-sky',
-		get_stylesheet_directory_uri() . '/javascript/header-sky.js',
+		get_stylesheet_directory_uri() . '/javascript/hero-header-animation.js',
 		array(),
 		$version,
 		true

@@ -8,13 +8,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   /* ── Aurora borealis blobs ── */
   var aurora = document.createElement("div");
-  aurora.className = "smpt-aurora";
+  aurora.className = "smpt-before-background";
   aurora.setAttribute("aria-hidden", "true");
 
   var blobColors = ["gold", "rose", "red", "magenta", "burgundy", "violet", "navy", "skyblue", "aquamarine", "green"];
   for (var b = 0; b < blobColors.length; b += 1) {
     var blob = document.createElement("div");
-    blob.className = "smpt-aurora__blob smpt-aurora__blob--" + blobColors[b];
+    blob.className = "smpt-before-background__blob smpt-before-background__blob--" + blobColors[b];
     aurora.appendChild(blob);
   }
   header.insertBefore(aurora, header.firstChild);
@@ -50,8 +50,8 @@ document.addEventListener("DOMContentLoaded", function () {
     var tone = tones[Math.floor(Math.random() * tones.length)];
     var size = randomBetween(2.2, 6.4);
 
-    particle.className = "smpt-header-hero__particle smpt-header-hero__particle--dot smpt-header-hero__particle--" + tone;
-    core.className = "smpt-header-hero__particle-core";
+    particle.className = "smpt-after-background smpt-after-background--dot smpt-after-background--" + tone;
+    core.className = "smpt-after-background-core";
 
     particle.style.left = randomBetween(2, 98).toFixed(2) + "%";
     particle.style.top = weightedTop().toFixed(2) + "%";
@@ -75,10 +75,10 @@ document.addEventListener("DOMContentLoaded", function () {
     var rayVSize = randomBetween(48, 76);
     var rayHSize = randomBetween(38, 62);
 
-    particle.className = "smpt-header-hero__particle smpt-header-hero__particle--flare smpt-header-hero__particle--" + tone;
-    core.className = "smpt-header-hero__particle-core";
-    rayV.className = "smpt-header-hero__particle-ray smpt-header-hero__particle-ray--vertical";
-    rayH.className = "smpt-header-hero__particle-ray smpt-header-hero__particle-ray--horizontal";
+    particle.className = "smpt-after-background smpt-after-background--flare smpt-after-background--" + tone;
+    core.className = "smpt-after-background-core";
+    rayV.className = "smpt-after-background-ray smpt-after-background-ray--vertical";
+    rayH.className = "smpt-after-background-ray smpt-after-background-ray--horizontal";
 
     particle.style.left = randomBetween(10, 90).toFixed(2) + "%";
     particle.style.top = randomBetween(16, 68).toFixed(2) + "%";

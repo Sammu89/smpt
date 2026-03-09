@@ -94,7 +94,7 @@
 }
 
 /* Aurora container — full height, masked at bottom */
-.smpt-aurora {
+.smpt-before-background {
 	position: absolute;
 	top: 0;
 	bottom: 0;
@@ -104,13 +104,13 @@
 	pointer-events: none;
 	overflow: hidden;
 	opacity: 0;
-	animation: smpt-aurora-fade 240s ease-in-out 3s infinite;
+	animation: smpt-before-background-fade 240s ease-in-out 3s infinite;
 	-webkit-mask-image: linear-gradient(0deg, transparent 0%, black 20%, black 100%);
 	mask-image: linear-gradient(0deg, transparent 0%, black 20%, black 100%);
 }
 
 /* Aurora blobs — full coverage, above top edge */
-.smpt-aurora__blob {
+.smpt-before-background__blob {
 	position: absolute;
 	left: -10%;
 	width: 120%;
@@ -124,77 +124,77 @@
 /* ── 10 aurora colors — gradient centers alternate left/right ── */
 
 /* 1. Golden Yellow — center-right */
-.smpt-aurora__blob--gold {
+.smpt-before-background__blob--gold {
 	background: radial-gradient(ellipse at 65% 45%, rgba(255, 195, 30, 1) 0%, rgba(255, 195, 30, 0.65) 25%, rgba(255, 195, 30, 0.3) 50%, rgba(255, 195, 30, 0) 75%);
 	box-shadow: 0 0 100px 50px rgba(255, 195, 30, 0.3);
-	animation: smpt-aw-1 240s ease-in-out 3s infinite, smpt-aurora-sway-a 55s ease-in-out infinite;
+	animation: smpt-aw-1 240s ease-in-out 3s infinite, smpt-before-background-sway-a 55s ease-in-out infinite;
 }
 
 /* 2. Pink Rose — center-left */
-.smpt-aurora__blob--rose {
+.smpt-before-background__blob--rose {
 	background: radial-gradient(ellipse at 35% 50%, rgba(255, 80, 130, 1) 0%, rgba(255, 80, 130, 0.65) 25%, rgba(255, 80, 130, 0.3) 50%, rgba(255, 80, 130, 0) 75%);
 	box-shadow: 0 0 100px 50px rgba(255, 80, 130, 0.3);
-	animation: smpt-aw-2 240s ease-in-out 3s infinite, smpt-aurora-sway-b 42s ease-in-out infinite;
+	animation: smpt-aw-2 240s ease-in-out 3s infinite, smpt-before-background-sway-b 42s ease-in-out infinite;
 }
 
 /* 3. Red — right */
-.smpt-aurora__blob--red {
+.smpt-before-background__blob--red {
 	background: radial-gradient(ellipse at 72% 42%, rgba(230, 30, 30, 1) 0%, rgba(230, 30, 30, 0.65) 25%, rgba(230, 30, 30, 0.3) 50%, rgba(230, 30, 30, 0) 75%);
 	box-shadow: 0 0 95px 48px rgba(230, 30, 30, 0.3);
-	animation: smpt-aw-3 240s ease-in-out 3s infinite, smpt-aurora-sway-a 46s ease-in-out infinite;
+	animation: smpt-aw-3 240s ease-in-out 3s infinite, smpt-before-background-sway-a 46s ease-in-out infinite;
 }
 
 /* 4. Magenta — left */
-.smpt-aurora__blob--magenta {
+.smpt-before-background__blob--magenta {
 	background: radial-gradient(ellipse at 28% 48%, rgba(220, 30, 70, 1) 0%, rgba(220, 30, 70, 0.65) 25%, rgba(220, 30, 70, 0.3) 50%, rgba(220, 30, 70, 0) 75%);
 	box-shadow: 0 0 95px 48px rgba(220, 30, 70, 0.28);
-	animation: smpt-aw-4 240s ease-in-out 3s infinite, smpt-aurora-sway-b 48s ease-in-out infinite;
+	animation: smpt-aw-4 240s ease-in-out 3s infinite, smpt-before-background-sway-b 48s ease-in-out infinite;
 }
 
 /* 5. Burgundy — center-right */
-.smpt-aurora__blob--burgundy {
+.smpt-before-background__blob--burgundy {
 	background: radial-gradient(ellipse at 68% 52%, rgba(128, 20, 50, 1) 0%, rgba(128, 20, 50, 0.65) 25%, rgba(128, 20, 50, 0.3) 50%, rgba(128, 20, 50, 0) 75%);
 	box-shadow: 0 0 90px 45px rgba(128, 20, 50, 0.28);
-	animation: smpt-aw-5 240s ease-in-out 3s infinite, smpt-aurora-sway-a 60s ease-in-out infinite;
+	animation: smpt-aw-5 240s ease-in-out 3s infinite, smpt-before-background-sway-a 60s ease-in-out infinite;
 }
 
 /* 6. Violet — center */
-.smpt-aurora__blob--violet {
+.smpt-before-background__blob--violet {
 	background: radial-gradient(ellipse at 50% 40%, rgba(148, 50, 210, 1) 0%, rgba(148, 50, 210, 0.65) 25%, rgba(148, 50, 210, 0.3) 50%, rgba(148, 50, 210, 0) 75%);
 	box-shadow: 0 0 100px 50px rgba(148, 50, 210, 0.3);
-	animation: smpt-aw-6 240s ease-in-out 3s infinite, smpt-aurora-sway-b 36s ease-in-out infinite;
+	animation: smpt-aw-6 240s ease-in-out 3s infinite, smpt-before-background-sway-b 36s ease-in-out infinite;
 }
 
 /* 7. Navy Blue (Sailor Uranus) — right */
-.smpt-aurora__blob--navy {
+.smpt-before-background__blob--navy {
 	background: radial-gradient(ellipse at 75% 38%, rgba(20, 50, 140, 1) 0%, rgba(20, 50, 140, 0.65) 25%, rgba(20, 50, 140, 0.3) 50%, rgba(20, 50, 140, 0) 75%);
 	box-shadow: 0 0 100px 50px rgba(20, 50, 140, 0.3);
-	animation: smpt-aw-7 240s ease-in-out 3s infinite, smpt-aurora-sway-a 52s ease-in-out infinite;
+	animation: smpt-aw-7 240s ease-in-out 3s infinite, smpt-before-background-sway-a 52s ease-in-out infinite;
 }
 
 /* 8. Sky Blue — left */
-.smpt-aurora__blob--skyblue {
+.smpt-before-background__blob--skyblue {
 	background: radial-gradient(ellipse at 30% 42%, rgba(100, 180, 255, 1) 0%, rgba(100, 180, 255, 0.65) 25%, rgba(100, 180, 255, 0.3) 50%, rgba(100, 180, 255, 0) 75%);
 	box-shadow: 0 0 95px 48px rgba(100, 180, 255, 0.3);
-	animation: smpt-aw-8 240s ease-in-out 3s infinite, smpt-aurora-sway-b 40s ease-in-out infinite;
+	animation: smpt-aw-8 240s ease-in-out 3s infinite, smpt-before-background-sway-b 40s ease-in-out infinite;
 }
 
 /* 9. Aquamarine (Sailor Neptune) — center-right */
-.smpt-aurora__blob--aquamarine {
+.smpt-before-background__blob--aquamarine {
 	background: radial-gradient(ellipse at 70% 45%, rgba(50, 210, 190, 1) 0%, rgba(50, 210, 190, 0.65) 25%, rgba(50, 210, 190, 0.3) 50%, rgba(50, 210, 190, 0) 75%);
 	box-shadow: 0 0 95px 48px rgba(50, 210, 190, 0.28);
-	animation: smpt-aw-9 240s ease-in-out 3s infinite, smpt-aurora-sway-a 44s ease-in-out infinite;
+	animation: smpt-aw-9 240s ease-in-out 3s infinite, smpt-before-background-sway-a 44s ease-in-out infinite;
 }
 
 /* 10. Dark Green — center-left, loops back to gold */
-.smpt-aurora__blob--green {
+.smpt-before-background__blob--green {
 	background: radial-gradient(ellipse at 32% 46%, rgba(20, 160, 80, 1) 0%, rgba(20, 160, 80, 0.65) 25%, rgba(20, 160, 80, 0.3) 50%, rgba(20, 160, 80, 0) 75%);
 	box-shadow: 0 0 100px 50px rgba(20, 160, 80, 0.28);
-	animation: smpt-aw-10 240s ease-in-out 3s infinite, smpt-aurora-sway-b 38s ease-in-out infinite;
+	animation: smpt-aw-10 240s ease-in-out 3s infinite, smpt-before-background-sway-b 38s ease-in-out infinite;
 }
 
 /* Container fade */
-@keyframes smpt-aurora-fade {
+@keyframes smpt-before-background-fade {
 	0%   { opacity: 0; }
 	4%   { opacity: 1; }
 	94%  { opacity: 1; }
@@ -307,7 +307,7 @@
 }
 
 /* Two sway patterns, alternated across blobs */
-@keyframes smpt-aurora-sway-a {
+@keyframes smpt-before-background-sway-a {
 	0%   { transform: translateX(0%) scaleX(1) rotate(0deg); }
 	25%  { transform: translateX(10%) scaleX(1.12) rotate(2deg); }
 	50%  { transform: translateX(-8%) scaleX(0.94) rotate(-1.5deg); }
@@ -315,7 +315,7 @@
 	100% { transform: translateX(0%) scaleX(1) rotate(0deg); }
 }
 
-@keyframes smpt-aurora-sway-b {
+@keyframes smpt-before-background-sway-b {
 	0%   { transform: translateX(0%) scaleX(1) rotate(0deg); }
 	25%  { transform: translateX(-9%) scaleX(1.1) rotate(-2deg); }
 	50%  { transform: translateX(11%) scaleX(0.92) rotate(1.5deg); }
@@ -339,7 +339,7 @@
 	min-height: inherit;
 }
 
-.smpt-header-hero__stage {
+.smpt-hero-header {
 	position: relative;
 	display: flex;
 	align-items: flex-end;
@@ -349,7 +349,7 @@
 	padding-top: clamp(0.35rem, 1vw, 0.9rem);
 }
 
-.smpt-header-hero__stage::before {
+.smpt-hero-header::before {
 	content: "";
 	position: absolute;
 	left: 50%;
@@ -383,7 +383,7 @@
 	--smpt-particle-scale: 1;
 }
 
-.smpt-header-hero__particle {
+.smpt-after-background {
 	position: absolute;
 	left: 0;
 	top: 0;
@@ -394,7 +394,7 @@
 	animation-delay: var(--smpt-delay, 0s), var(--smpt-delay, 0s);
 }
 
-.smpt-header-hero__particle-core {
+.smpt-after-background-core {
 	display: block;
 	width: var(--smpt-size, 4px);
 	height: var(--smpt-size, 4px);
@@ -404,13 +404,13 @@
 	animation-delay: var(--smpt-delay, 0s);
 }
 
-.smpt-header-hero__particle--dot .smpt-header-hero__particle-core {
+.smpt-after-background--dot .smpt-after-background-core {
 	box-shadow:
 		0 0 8px rgba(91, 168, 255, 0.82),
 		0 0 18px rgba(90, 164, 255, 0.24);
 }
 
-.smpt-header-hero__particle--flare .smpt-header-hero__particle-core {
+.smpt-after-background--flare .smpt-after-background-core {
 	position: relative;
 	z-index: 2;
 	box-shadow:
@@ -418,7 +418,7 @@
 		0 0 28px rgba(120, 181, 255, 0.46);
 }
 
-.smpt-header-hero__particle-ray {
+.smpt-after-background-ray {
 	position: absolute;
 	left: 50%;
 	top: 50%;
@@ -426,7 +426,7 @@
 	z-index: 1;
 }
 
-.smpt-header-hero__particle-ray--vertical {
+.smpt-after-background-ray--vertical {
 	width: 3px;
 	height: var(--smpt-ray-v, 56px);
 	transform-origin: center;
@@ -434,7 +434,7 @@
 	animation-delay: var(--smpt-delay, 0s);
 }
 
-.smpt-header-hero__particle-ray--horizontal {
+.smpt-after-background-ray--horizontal {
 	width: var(--smpt-ray-h, 44px);
 	height: 3px;
 	transform-origin: center;
@@ -442,48 +442,48 @@
 	animation-delay: var(--smpt-delay, 0s);
 }
 
-.smpt-header-hero__particle--white .smpt-header-hero__particle-core,
-.smpt-header-hero__particle--white .smpt-header-hero__particle-ray {
+.smpt-after-background--white .smpt-after-background-core,
+.smpt-after-background--white .smpt-after-background-ray {
 	background: rgba(232, 243, 255, 0.98);
 }
 
-.smpt-header-hero__particle--gold .smpt-header-hero__particle-core,
-.smpt-header-hero__particle--gold .smpt-header-hero__particle-ray {
+.smpt-after-background--gold .smpt-after-background-core,
+.smpt-after-background--gold .smpt-after-background-ray {
 	background: rgba(247, 221, 156, 0.98);
 }
 
-.smpt-header-hero__particle--yellow .smpt-header-hero__particle-core,
-.smpt-header-hero__particle--yellow .smpt-header-hero__particle-ray {
+.smpt-after-background--yellow .smpt-after-background-core,
+.smpt-after-background--yellow .smpt-after-background-ray {
 	background: rgba(255, 238, 134, 0.98);
 }
 
-.smpt-header-hero__particle--white .smpt-header-hero__particle-core {
+.smpt-after-background--white .smpt-after-background-core {
 	box-shadow:
 		0 0 8px rgba(176, 212, 255, 0.92),
 		0 0 18px rgba(111, 173, 255, 0.34);
 }
 
-.smpt-header-hero__particle--gold .smpt-header-hero__particle-core {
+.smpt-after-background--gold .smpt-after-background-core {
 	box-shadow:
 		0 0 9px rgba(255, 232, 183, 0.9),
 		0 0 20px rgba(246, 201, 92, 0.36);
 }
 
-.smpt-header-hero__particle--yellow .smpt-header-hero__particle-core {
+.smpt-after-background--yellow .smpt-after-background-core {
 	box-shadow:
 		0 0 10px rgba(255, 246, 190, 0.96),
 		0 0 22px rgba(255, 224, 86, 0.42);
 }
 
-.smpt-header-hero__particle--white .smpt-header-hero__particle-ray {
+.smpt-after-background--white .smpt-after-background-ray {
 	box-shadow: 0 0 10px rgba(133, 188, 255, 0.44);
 }
 
-.smpt-header-hero__particle--gold .smpt-header-hero__particle-ray {
+.smpt-after-background--gold .smpt-after-background-ray {
 	box-shadow: 0 0 10px rgba(247, 208, 110, 0.38);
 }
 
-.smpt-header-hero__particle--yellow .smpt-header-hero__particle-ray {
+.smpt-after-background--yellow .smpt-after-background-ray {
 	box-shadow: 0 0 10px rgba(255, 226, 102, 0.4);
 }
 
@@ -554,7 +554,7 @@
 }
 
 .smpt-header-hero__logo,
-.smpt-header-hero__senshi {
+.smpt-hero-header__image {
 	position: relative;
 }
 
@@ -569,7 +569,7 @@
 		drop-shadow(0 0 18px rgba(255, 255, 255, 0.22));
 }
 
-.smpt-header-hero__senshi {
+.smpt-hero-header__image {
 	flex: 0 1 auto;
 	z-index: 3;
 	filter:
@@ -599,7 +599,7 @@
 	transform: scale(0.97);
 }
 
-.smpt-header-hero__senshi img {
+.smpt-hero-header__image img {
 	width: clamp(420px, 58vw, 980px);
 	max-width: min(72vw, 980px);
 	max-height: min(58svh, 607px);
@@ -778,11 +778,11 @@ body.smpt-nav-is-sticky .main-navigation:not(.toggled) .main-nav > ul {
 		filter: var(--smpt-logo-outline);
 	}
 
-	.smpt-header-hero__senshi img {
+	.smpt-hero-header__image img {
 		width: clamp(360px, 69vw, 860px);
 		max-width: 81vw;
 	}
-	.smpt-header-hero__senshi {
+	.smpt-hero-header__image {
 		margin-left: clamp(-2.4rem, -4vw, -0.5rem);
 	}
 }
@@ -797,19 +797,19 @@ body.smpt-nav-is-sticky .main-navigation:not(.toggled) .main-nav > ul {
 		--smpt-particle-scale: 0.55;
 	}
 
-	.smpt-header-hero__stage {
+	.smpt-hero-header {
 		display: grid;
 		place-items: center;
 		width: min(100%, 720px);
 	}
 
 	.smpt-header-hero__logo,
-	.smpt-header-hero__senshi {
+	.smpt-hero-header__image {
 		grid-area: 1 / 1;
 		margin-right: 0;
 	}
 
-	.smpt-header-hero__senshi {
+	.smpt-hero-header__image {
 		align-self: end;
 		z-index: 2;
 	}
@@ -826,7 +826,7 @@ body.smpt-nav-is-sticky .main-navigation:not(.toggled) .main-nav > ul {
 		max-width: 54vw;
 	}
 
-	.smpt-header-hero__senshi img {
+	.smpt-hero-header__image img {
 		width: clamp(255px, 88vw, 420px);
 		max-width: 90vw;
 	}
@@ -848,11 +848,11 @@ body.smpt-nav-is-sticky .main-navigation:not(.toggled) .main-nav > ul {
 @media (prefers-reduced-motion: reduce) {
 	.site-header::before,
 	.site-header::after,
-	.smpt-aurora,
-	.smpt-aurora__blob,
-	.smpt-header-hero__particle,
-	.smpt-header-hero__particle-core,
-	.smpt-header-hero__particle-ray,
+	.smpt-before-background,
+	.smpt-before-background__blob,
+	.smpt-after-background,
+	.smpt-after-background-core,
+	.smpt-after-background-ray,
 	.smpt-header-hero__logo.smpt-logo-reveal,
 	.smpt-header-hero__logo.smpt-logo-reveal img,
 	.smpt-header-hero__logo.smpt-logo-fadeback {
@@ -932,7 +932,7 @@ body.smpt-nav-is-sticky .main-navigation:not(.toggled) .main-nav > ul {
 		filter: var(--smpt-logo-outline);
 	}
 
-	.smpt-header-hero__senshi img {
+	.smpt-hero-header__image img {
 		width: clamp(250px, 92vw, 360px);
 	}
 }
@@ -947,7 +947,7 @@ body.smpt-nav-is-sticky .main-navigation:not(.toggled) .main-nav > ul {
 
 	.site-header::before,
 	.site-header::after,
-	.smpt-aurora {
+	.smpt-before-background {
 		min-width: 320px;
 		left: 0;
 		width: 100%;
@@ -956,7 +956,7 @@ body.smpt-nav-is-sticky .main-navigation:not(.toggled) .main-nav > ul {
 	.site-header,
 	.site-header .inside-header,
 	.smpt-header-hero,
-	.smpt-header-hero__stage {
+	.smpt-hero-header {
 		min-width: 320px;
 	}
 
@@ -969,7 +969,7 @@ body.smpt-nav-is-sticky .main-navigation:not(.toggled) .main-nav > ul {
 		max-width: none;
 	}
 
-	.smpt-header-hero__senshi img {
+	.smpt-hero-header__image img {
 		width: 294px;
 		max-width: none;
 	}

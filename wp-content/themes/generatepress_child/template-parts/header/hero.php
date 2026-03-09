@@ -17,7 +17,7 @@ $smpt_logo_size   = file_exists( $smpt_logo_path ) ? getimagesize( $smpt_logo_pa
 $smpt_senshi_size = file_exists( $smpt_senshi_path ) ? getimagesize( $smpt_senshi_path ) : false;
 ?>
 <div class="smpt-header-hero">
-	<div class="smpt-header-hero__stage">
+	<div class="smpt-hero-header">
 		<div class="smpt-header-hero__logo">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home" aria-label="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
 				<img
@@ -33,7 +33,7 @@ $smpt_senshi_size = file_exists( $smpt_senshi_path ) ? getimagesize( $smpt_sensh
 			</a>
 		</div>
 
-		<div class="smpt-header-hero__senshi" aria-hidden="true">
+		<div class="smpt-hero-header__image" aria-hidden="true">
 			<img
 				src="<?php echo esc_url( $smpt_senshi_uri ); ?>"
 				alt=""
