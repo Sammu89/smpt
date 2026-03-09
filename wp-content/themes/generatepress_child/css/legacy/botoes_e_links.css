@@ -1,0 +1,115 @@
+/* Estilos gerais para botões e links com aparência de botão */
+.button, .botao, .botao-download, .episodio-opcoes a, .episodio-opcoes button {
+  background-color: var(--cor-primaria);
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-weight: 700;
+  line-height: 1;
+  max-height: 40px;
+  padding: 10px 15px;
+  margin: auto;
+  text-decoration: none!important;
+}
+
+/* Estilo do botão ao passar o rato */
+.button:hover, .botao:hover, .botao-download:hover, .download-opcoes button:hover {
+  background-color: #c1970e;
+}
+
+/* Estilo do botão quando pressionado */
+.button:active, .download-opcoes a:active, .download-opcoes button:active {
+  transform: translateY(1px);
+}
+
+/* Estilos para o botão de voltar */
+button.botao-voltar {
+  border: none;
+  border-radius: 5px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  color: var(--cor-primaria);
+  cursor: pointer;
+  font-family: Atma;
+  font-size: 1.5em;
+  padding: 5px 10px;
+}
+
+/* Remove o sublinhado do link dentro do botão de voltar */
+button.botao-voltar a {
+  text-decoration: none!important;
+}
+
+/* Estilo do botão de voltar ao passar o rato */
+button.botao-voltar:hover {
+  color: var(--cor-primaria);
+  transform: translateY(-3px);
+}
+
+/* Estilo do contêiner para o botão de voltar */
+div.voltar {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: flex-start;
+  padding: 10px;
+  width: 100%;
+}
+
+
+/* Estilos para links sem decoração */
+.entry-content a, article.single-page-article a {
+    text-decoration: none !important;
+    transition: all 1s cubic-bezier(0, 1.25, 1, 1) !important;
+    font-weight: 600;
+}
+.entry-content a:hover {
+  border-bottom: 1px var(--cor-primaria);
+}
+
+/* Estilo do link com destaque */
+a.destaque {
+  color: #FF6F61;
+  display: inline-block;
+  font-size: 1.2em;
+  font-weight: 600;
+  margin-top: 20px;
+  overflow: hidden;
+  position: relative;
+  text-decoration: none!important;
+  transition: color .6s ease, transform .6s ease, text-shadow .6s ease;
+}
+
+/* Estilo do link com destaque ao passar o mouse */
+ a.destaque:hover {
+  color: var(--cor-secundaria);
+  text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transform: scale(1.05);
+}
+
+/* Estilo do pseudo-elemento após o link com destaque */
+a.destaque::after {
+  background: var(--cor-secundaria);
+  bottom: 0;
+  content: '';
+  display: block;
+  height: 2px;
+  left: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform .6s ease, background-color .6s ease;
+  width: 100%;
+}
+
+/* Estilo do pseudo-elemento após o link com destaque ao passar o rato */
+a.destaque:hover::after {
+  background-color: transparent;
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+
+.related-post-title a:hover {
+	color: var(--cor-primaria-clara)!important;
+}
+

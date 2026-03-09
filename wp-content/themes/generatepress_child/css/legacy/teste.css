@@ -1,0 +1,65 @@
+/* Compatibility Checkbox */
+.compatibilidade {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: lightgray; /* Consider checking contrast */
+    font-style: italic;
+}
+
+
+
+
+
+/* Tooltip container */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-active {
+	color: var(--cor-primaria);
+	font-weight: bold;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 300px;
+  background-color: var(--cor-primaria-clara);
+  color: white;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+  top: 100%;
+  left: 50%;
+  margin-left: -200px; /* Use half of the width (400/2 = 200), to center the tooltip */
+  position: absolute;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.4s;
+  font-size: 0.8em;
+  padding: 5px;
+}
+
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 0.9;
+}
+
+
+.tooltip:hover {
+    border-bottom: 1px dotted var(--cor-primaria-clara); 
+}
+
+/*
+ * /
+ * 
+ */
+ 
+
+.segunda-linha {
+    display: flex !important;
+}
