@@ -99,8 +99,10 @@ function smpt_access_trace_enabled() {
 	$has_preview  = isset( $_GET['smpt_preview_blocked'] ) || isset( $_REQUEST['smpt_preview_blocked'] ) || isset( $_GET['smpt_preview_toggle'] ) || isset( $_REQUEST['smpt_preview_toggle'] ) || ! empty( $_COOKIE['smpt_preview_blocked'] );
 	$is_admin_post = false !== strpos( $uri, 'admin-post.php' ) && false !== strpos( $uri, 'smpt_toggle_blocked_preview' );
 	$is_member_path = false !== strpos( $uri, '/download-s03/' ) || false !== strpos( $referer, '/download-s03/' );
+	$has_debug_toggle = isset( $_GET['smpt_debug_trace_toggle'] ) || isset( $_REQUEST['smpt_debug_trace_toggle'] );
+	$debug_enabled = function_exists( 'smpt_is_debug_trace_enabled' ) && smpt_is_debug_trace_enabled();
 
-	$enabled = $has_preview || $is_admin_post || $is_member_path;
+	$enabled = $debug_enabled || $has_debug_toggle || $has_preview || $is_admin_post || $is_member_path;
 
 	return $enabled;
 }
@@ -153,6 +155,8 @@ function smpt_access_trace_request_start() {
 			'referer'       => isset( $_SERVER['HTTP_REFERER'] ) ? wp_unslash( $_SERVER['HTTP_REFERER'] ) : '',
 			'preview_query' => isset( $_REQUEST['smpt_preview_blocked'] ) ? wp_unslash( $_REQUEST['smpt_preview_blocked'] ) : '',
 			'preview_toggle'=> isset( $_REQUEST['smpt_preview_toggle'] ) ? wp_unslash( $_REQUEST['smpt_preview_toggle'] ) : '',
+			'debug_toggle'  => isset( $_REQUEST['smpt_debug_trace_toggle'] ) ? wp_unslash( $_REQUEST['smpt_debug_trace_toggle'] ) : '',
+			'debug_cookie'  => isset( $_COOKIE['smpt_debug_trace'] ) ? wp_unslash( $_COOKIE['smpt_debug_trace'] ) : '',
 			'preview_cookie'=> isset( $_COOKIE['smpt_preview_blocked'] ) ? wp_unslash( $_COOKIE['smpt_preview_blocked'] ) : '',
 		)
 	);
@@ -217,6 +221,7 @@ function smpt_access_trace_request_summary() {
 			'allowed'      => ! empty( $decision['allowed'] ),
 			'source'       => isset( $decision['source'] ) ? $decision['source'] : '',
 			'preview'      => function_exists( 'smpt_should_apply_blocked_preview' ) && smpt_should_apply_blocked_preview(),
+			'debug'        => function_exists( 'smpt_is_debug_trace_enabled' ) && smpt_is_debug_trace_enabled(),
 			'queries'      => isset( $wpdb->num_queries ) ? (int) $wpdb->num_queries : 0,
 			'memory_mb'    => round( memory_get_peak_usage( true ) / 1048576, 2 ),
 			'is_admin'     => is_admin(),
