@@ -8,11 +8,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Return a cache-busting version string for a child-theme asset.
+ *
+ * @param string $relative_path Asset path relative to the child theme root.
+ * @param string $fallback      Fallback version when the file is missing.
+ * @return string
+ */
+function smpt_child_asset_version( $relative_path, $fallback ) {
+	$asset_path = get_stylesheet_directory() . '/' . ltrim( $relative_path, '/' );
+
+	if ( file_exists( $asset_path ) ) {
+		return (string) filemtime( $asset_path );
+	}
+
+	return $fallback;
+}
+
+/**
  * Enqueue migrated custom styles.
  */
 function smpt_generatepress_enqueue_styles() {
-	$theme   = wp_get_theme();
-	$version = $theme->get( 'Version' );
+	$theme           = wp_get_theme();
+	$version         = $theme->get( 'Version' );
+	$noticias_ver    = smpt_child_asset_version( 'css/noticias.css', $version );
+	$infobox_ver     = smpt_child_asset_version( 'css/infobox.css', $version );
+	$headers_ver     = smpt_child_asset_version( 'css/headers.css', $version );
+	$header_ver      = smpt_child_asset_version( 'css/header.css', $version );
+	$member_area_ver = smpt_child_asset_version( 'css/member-area.css', $version );
+	$botoes_ver      = smpt_child_asset_version( 'css/botoes_e_links.css', $version );
 
 	wp_enqueue_style( 'dashicons' );
 
@@ -20,37 +43,37 @@ function smpt_generatepress_enqueue_styles() {
 		'noticias-style',
 		get_stylesheet_directory_uri() . '/css/noticias.css',
 		array( 'generate-style' ),
-		$version
+		$noticias_ver
 	);
 	wp_enqueue_style(
 		'infobox-style',
 		get_stylesheet_directory_uri() . '/css/infobox.css',
 		array( 'generate-style' ),
-		$version
+		$infobox_ver
 	);
 	wp_enqueue_style(
 		'headers-style',
 		get_stylesheet_directory_uri() . '/css/headers.css',
 		array( 'generate-style' ),
-		$version
+		$headers_ver
 	);
 	wp_enqueue_style(
 		'smpt-header-style',
 		get_stylesheet_directory_uri() . '/css/header.css',
 		array( 'generate-style' ),
-		$version
+		$header_ver
 	);
 	wp_enqueue_style(
 		'smpt-member-area-style',
 		get_stylesheet_directory_uri() . '/css/member-area.css',
 		array( 'generate-style' ),
-		$version
+		$member_area_ver
 	);
 	wp_enqueue_style(
 		'botoes-style',
 		get_stylesheet_directory_uri() . '/css/botoes_e_links.css',
 		array( 'generate-style' ),
-		$version
+		$botoes_ver
 	);
 }
 add_action( 'wp_enqueue_scripts', 'smpt_generatepress_enqueue_styles' );
@@ -59,15 +82,17 @@ add_action( 'wp_enqueue_scripts', 'smpt_generatepress_enqueue_styles' );
  * Enqueue child-theme front-end scripts.
  */
 function smpt_generatepress_enqueue_scripts() {
-	$theme   = wp_get_theme();
-	$version = $theme->get( 'Version' );
-	$day_key = wp_date( 'Y-m-d' );
+	$theme          = wp_get_theme();
+	$version        = $theme->get( 'Version' );
+	$day_key        = wp_date( 'Y-m-d' );
+	$sticky_nav_ver = smpt_child_asset_version( 'javascript/sticky-nav.js', $version );
+	$hero_sky_ver   = smpt_child_asset_version( 'javascript/hero-header-animation.js', $version );
 
 	wp_enqueue_script(
 		'smpt-sticky-nav',
 		get_stylesheet_directory_uri() . '/javascript/sticky-nav.js',
 		array(),
-		$version,
+		$sticky_nav_ver,
 		true
 	);
 
@@ -75,7 +100,7 @@ function smpt_generatepress_enqueue_scripts() {
 		'smpt-header-sky',
 		get_stylesheet_directory_uri() . '/javascript/hero-header-animation.js',
 		array(),
-		$version,
+		$hero_sky_ver,
 		true
 	);
 

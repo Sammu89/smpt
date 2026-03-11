@@ -58,6 +58,10 @@
 	gap: 1rem;
 }
 
+.smpt-member-grid--single {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .smpt-member-panel {
 	display: none;
 	padding: 1.25rem;
@@ -128,6 +132,11 @@
 	color: #8b2020;
 }
 
+.smpt-member-notice--success {
+	background: rgba(38, 120, 220, 0.1);
+	color: #184f93;
+}
+
 .smpt-member-facts {
 	margin: 0;
 	padding: 0;
@@ -156,6 +165,16 @@
 .smpt-member-note {
 	margin-bottom: 0;
 	color: #566172;
+}
+
+.smpt-member-inline-link {
+	margin: 0;
+}
+
+.smpt-member-inline-link a {
+	color: #2678dc;
+	font-weight: 600;
+	text-decoration: none;
 }
 
 @media (max-width: 768px) {

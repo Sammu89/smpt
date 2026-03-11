@@ -23,6 +23,19 @@ if ( ! defined( 'SMPT_REQUEST_ID' ) ) {
 	define( 'SMPT_REQUEST_ID', wp_generate_uuid4() );
 }
 
+if ( ! defined( 'SMPT_SLOW_REQUEST_THRESHOLD' ) ) {
+	define( 'SMPT_SLOW_REQUEST_THRESHOLD', 1.0 );
+}
+
+if ( ! defined( 'SAVEQUERIES' ) ) {
+	$smpt_trace_cookie = isset( $_COOKIE['smpt_debug_trace'] ) ? (string) wp_unslash( $_COOKIE['smpt_debug_trace'] ) : '';
+	$smpt_trace_toggle = isset( $_GET['smpt_debug_trace_toggle'] ) ? (string) wp_unslash( $_GET['smpt_debug_trace_toggle'] ) : '';
+
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG && ( '1' === $smpt_trace_cookie || 'on' === $smpt_trace_toggle ) ) {
+		define( 'SAVEQUERIES', true );
+	}
+}
+
 /**
  * Get access-control configuration.
  *
@@ -80,6 +93,525 @@ function smpt_access_log( $message ) {
 	}
 
 	error_log( '[smpt-access] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+}
+
+/**
+ * Get the in-memory request profiler state.
+ *
+ * @return array
+ */
+function &smpt_access_profiler_state() {
+	static $state = array(
+		'checkpoints' => array(),
+		'meta'        => array(),
+	);
+
+	return $state;
+}
+
+/**
+ * Store request profiler metadata.
+ *
+ * @param string $key   Metadata key.
+ * @param mixed  $value Metadata value.
+ * @return void
+ */
+function smpt_access_profile_set_meta( $key, $value ) {
+	$state = &smpt_access_profiler_state();
+	$state['meta'][ $key ] = $value;
+}
+
+/**
+ * Append a value to request profiler metadata.
+ *
+ * @param string $key   Metadata key.
+ * @param mixed  $value Metadata value.
+ * @return void
+ */
+function smpt_access_profile_append_meta( $key, $value ) {
+	$state = &smpt_access_profiler_state();
+
+	if ( ! isset( $state['meta'][ $key ] ) || ! is_array( $state['meta'][ $key ] ) ) {
+		$state['meta'][ $key ] = array();
+	}
+
+	$state['meta'][ $key ][] = $value;
+}
+
+/**
+ * Record a request checkpoint with timing, query count, and memory usage.
+ *
+ * @param string $label   Checkpoint label.
+ * @param array  $context Additional context values.
+ * @return void
+ */
+function smpt_access_profile_mark_checkpoint( $label, array $context = array() ) {
+	global $wpdb;
+
+	$state = &smpt_access_profiler_state();
+	$last  = end( $state['checkpoints'] );
+
+	if ( $last && isset( $last['label'] ) && $last['label'] === $label ) {
+		return;
+	}
+
+	$state['checkpoints'][] = array(
+		'label'    => (string) $label,
+		't'        => defined( 'SMPT_REQUEST_START' ) ? microtime( true ) - SMPT_REQUEST_START : 0,
+		'queries'  => isset( $wpdb->num_queries ) ? (int) $wpdb->num_queries : 0,
+		'memory'   => round( memory_get_usage( true ) / 1048576, 2 ),
+		'peak'     => round( memory_get_peak_usage( true ) / 1048576, 2 ),
+		'context'  => $context,
+	);
+}
+
+/**
+ * Get request profiler checkpoints.
+ *
+ * @return array
+ */
+function smpt_access_profile_get_checkpoints() {
+	$state = &smpt_access_profiler_state();
+	return isset( $state['checkpoints'] ) ? $state['checkpoints'] : array();
+}
+
+/**
+ * Get request profiler metadata.
+ *
+ * @return array
+ */
+function smpt_access_profile_get_meta() {
+	$state = &smpt_access_profiler_state();
+	return isset( $state['meta'] ) ? $state['meta'] : array();
+}
+
+/**
+ * Append a timed callback sample to the profiler metadata.
+ *
+ * @param string $bucket Timing bucket name.
+ * @param array  $sample Timed callback sample.
+ * @return void
+ */
+function smpt_access_profile_add_timed_sample( $bucket, array $sample ) {
+	$state = &smpt_access_profiler_state();
+
+	if ( ! isset( $state['meta'][ $bucket ] ) || ! is_array( $state['meta'][ $bucket ] ) ) {
+		$state['meta'][ $bucket ] = array();
+	}
+
+	$state['meta'][ $bucket ][] = $sample;
+}
+
+/**
+ * Determine whether the current request is the wp-admin dashboard screen.
+ *
+ * @return bool
+ */
+function smpt_access_is_admin_dashboard_request() {
+	$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+
+	if ( false === strpos( $uri, '/wp-admin/' ) ) {
+		return false;
+	}
+
+	if ( false !== strpos( $uri, 'admin-ajax.php' ) || false !== strpos( $uri, 'admin-post.php' ) ) {
+		return false;
+	}
+
+	if ( false === strpos( $uri, 'index.php' ) && ! preg_match( '#/wp-admin/?(?:\?|$)#', $uri ) ) {
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Describe a callable for debug output.
+ *
+ * @param mixed $callable Callable to describe.
+ * @return string
+ */
+function smpt_access_describe_callable( $callable ) {
+	if ( is_string( $callable ) ) {
+		return $callable;
+	}
+
+	if ( is_array( $callable ) && isset( $callable[0], $callable[1] ) ) {
+		$class = is_object( $callable[0] ) ? get_class( $callable[0] ) : (string) $callable[0];
+		return $class . '::' . $callable[1];
+	}
+
+	if ( $callable instanceof Closure ) {
+		return 'Closure';
+	}
+
+	return 'callable';
+}
+
+/**
+ * Wrap callbacks on selected hooks to record per-callback timing.
+ *
+ * @param string $hook_name Hook name.
+ * @return void
+ */
+function smpt_access_wrap_hook_callbacks( $hook_name ) {
+	global $wp_filter;
+
+	static $wrapped_hooks = array();
+
+	if ( isset( $wrapped_hooks[ $hook_name ] ) ) {
+		return;
+	}
+
+	if ( empty( $wp_filter[ $hook_name ] ) || ! $wp_filter[ $hook_name ] instanceof WP_Hook ) {
+		$wrapped_hooks[ $hook_name ] = true;
+		return;
+	}
+
+	foreach ( $wp_filter[ $hook_name ]->callbacks as $priority => &$callbacks ) {
+		foreach ( $callbacks as $callback_id => &$callback ) {
+			if ( empty( $callback['function'] ) || ! is_callable( $callback['function'] ) ) {
+				continue;
+			}
+
+			if ( ! empty( $callback['smpt_profile_wrapped'] ) ) {
+				continue;
+			}
+
+			$original_callable = $callback['function'];
+			$description       = smpt_access_describe_callable( $original_callable );
+			$accepted_args     = isset( $callback['accepted_args'] ) ? (int) $callback['accepted_args'] : 1;
+
+			$callback['function'] = static function( ...$args ) use ( $original_callable, $hook_name, $priority, $description, $accepted_args ) {
+				global $wpdb;
+
+				$start          = microtime( true );
+				$queries_before = isset( $wpdb->num_queries ) ? (int) $wpdb->num_queries : 0;
+				$result         = call_user_func_array( $original_callable, array_slice( $args, 0, $accepted_args ) );
+				$elapsed        = microtime( true ) - $start;
+				$queries_after  = isset( $wpdb->num_queries ) ? (int) $wpdb->num_queries : $queries_before;
+
+				smpt_access_profile_add_timed_sample(
+					'hook_callback_timings',
+					array(
+						'hook'      => $hook_name,
+						'priority'  => $priority,
+						'callback'  => $description,
+						'elapsed'   => $elapsed,
+						'queries'   => max( 0, $queries_after - $queries_before ),
+						'memory_mb' => round( memory_get_usage( true ) / 1048576, 2 ),
+					)
+				);
+
+				return $result;
+			};
+			$callback['smpt_profile_wrapped'] = true;
+		}
+		unset( $callback );
+	}
+	unset( $callbacks );
+
+	$wrapped_hooks[ $hook_name ] = true;
+}
+
+/**
+ * Wrap dashboard widget render callbacks for timing analysis.
+ *
+ * @return void
+ */
+function smpt_access_wrap_dashboard_widgets() {
+	global $wp_meta_boxes, $current_screen;
+
+	static $wrapped = false;
+
+	if ( $wrapped || empty( $wp_meta_boxes['dashboard'] ) ) {
+		return;
+	}
+
+	$screen_id = '';
+	if ( isset( $current_screen ) && is_object( $current_screen ) && ! empty( $current_screen->id ) ) {
+		$screen_id = (string) $current_screen->id;
+	}
+
+	foreach ( $wp_meta_boxes['dashboard'] as $context => &$priorities ) {
+		foreach ( $priorities as $priority => &$boxes ) {
+			foreach ( $boxes as $box_id => &$box ) {
+				if ( empty( $box['callback'] ) || ! is_callable( $box['callback'] ) ) {
+					continue;
+				}
+
+				if ( ! empty( $box['smpt_profile_wrapped'] ) ) {
+					continue;
+				}
+
+				$original_callback = $box['callback'];
+				$description       = smpt_access_describe_callable( $original_callback );
+				$title             = isset( $box['title'] ) ? wp_strip_all_tags( (string) $box['title'] ) : $box_id;
+
+				$box['callback'] = static function( ...$args ) use ( $original_callback, $box_id, $title, $context, $priority, $screen_id, $description ) {
+					global $wpdb;
+
+					$start          = microtime( true );
+					$queries_before = isset( $wpdb->num_queries ) ? (int) $wpdb->num_queries : 0;
+					$result         = call_user_func_array( $original_callback, $args );
+					$elapsed        = microtime( true ) - $start;
+					$queries_after  = isset( $wpdb->num_queries ) ? (int) $wpdb->num_queries : $queries_before;
+
+					smpt_access_profile_add_timed_sample(
+						'dashboard_widget_timings',
+						array(
+							'box_id'    => $box_id,
+							'title'     => $title,
+							'screen'    => $screen_id,
+							'context'   => $context,
+							'priority'  => $priority,
+							'callback'  => $description,
+							'elapsed'   => $elapsed,
+							'queries'   => max( 0, $queries_after - $queries_before ),
+							'memory_mb' => round( memory_get_usage( true ) / 1048576, 2 ),
+						)
+					);
+
+					return $result;
+				};
+				$box['smpt_profile_wrapped'] = true;
+			}
+			unset( $box );
+		}
+		unset( $boxes );
+	}
+	unset( $priorities );
+
+	$wrapped = true;
+}
+
+/**
+ * Format timed callback samples into a compact log string.
+ *
+ * @param array  $samples Timed callback samples.
+ * @param string $label   Sample label key.
+ * @return string
+ */
+function smpt_access_format_timed_samples( array $samples, $label = 'callback' ) {
+	if ( empty( $samples ) ) {
+		return '';
+	}
+
+	usort(
+		$samples,
+		static function( $left, $right ) {
+			return $left['elapsed'] < $right['elapsed'] ? 1 : -1;
+		}
+	);
+
+	$parts = array();
+
+	foreach ( array_slice( $samples, 0, 8 ) as $sample ) {
+		$name = isset( $sample[ $label ] ) ? $sample[ $label ] : 'unknown';
+		$parts[] = sprintf(
+			'%1$s:%2$.3fs:%3$dq',
+			$name,
+			isset( $sample['elapsed'] ) ? (float) $sample['elapsed'] : 0,
+			isset( $sample['queries'] ) ? (int) $sample['queries'] : 0
+		);
+	}
+
+	return implode( ' | ', $parts );
+}
+
+/**
+ * Format profiler checkpoints into a compact log string.
+ *
+ * @return string
+ */
+function smpt_access_profile_format_checkpoints() {
+	$checkpoints = smpt_access_profile_get_checkpoints();
+	$parts       = array();
+	$previous_t  = 0;
+	$previous_q  = 0;
+
+	foreach ( $checkpoints as $checkpoint ) {
+		$delta_t = $checkpoint['t'] - $previous_t;
+		$delta_q = $checkpoint['queries'] - $previous_q;
+
+		$parts[] = sprintf(
+			'%1$s@%2$.3fs(+%3$.3fs,%4$dq,%5$.1fmb)',
+			$checkpoint['label'],
+			$checkpoint['t'],
+			max( 0, $delta_t ),
+			$delta_q,
+			$checkpoint['memory']
+		);
+
+		$previous_t = $checkpoint['t'];
+		$previous_q = $checkpoint['queries'];
+	}
+
+	return implode( ' | ', $parts );
+}
+
+/**
+ * Build a compact main-query summary for debug logs.
+ *
+ * @return array
+ */
+function smpt_access_get_main_query_summary() {
+	global $wp_query;
+
+	if ( ! isset( $wp_query ) || ! $wp_query instanceof WP_Query ) {
+		return array();
+	}
+
+	$type = 'other';
+
+	if ( is_front_page() ) {
+		$type = 'front-page';
+	} elseif ( is_home() ) {
+		$type = 'home';
+	} elseif ( is_page() ) {
+		$type = 'page';
+	} elseif ( is_single() ) {
+		$type = 'single';
+	} elseif ( is_category() ) {
+		$type = 'category';
+	} elseif ( is_tag() ) {
+		$type = 'tag';
+	} elseif ( is_tax() ) {
+		$type = 'taxonomy';
+	} elseif ( is_search() ) {
+		$type = 'search';
+	} elseif ( is_archive() ) {
+		$type = 'archive';
+	} elseif ( is_404() ) {
+		$type = '404';
+	}
+
+	$queried_object = get_queried_object();
+	$object_bits    = array();
+
+	if ( is_object( $queried_object ) ) {
+		foreach ( array( 'post_type', 'taxonomy', 'slug', 'name' ) as $property ) {
+			if ( ! empty( $queried_object->{$property} ) ) {
+				$object_bits[] = $property . ':' . $queried_object->{$property};
+			}
+		}
+	}
+
+	return array(
+		'type'          => $type,
+		'object_id'     => get_queried_object_id(),
+		'object'        => implode( ',', $object_bits ),
+		'post_count'    => (int) $wp_query->post_count,
+		'found_posts'   => isset( $wp_query->found_posts ) ? (int) $wp_query->found_posts : 0,
+		'max_pages'     => isset( $wp_query->max_num_pages ) ? (int) $wp_query->max_num_pages : 0,
+		'is_main_query' => $wp_query->is_main_query(),
+	);
+}
+
+/**
+ * Get the slowest recorded SQL queries for the current request.
+ *
+ * @param int   $limit          Maximum number of queries to return.
+ * @param float $min_duration_s Minimum duration in seconds.
+ * @return array
+ */
+function smpt_access_get_slowest_queries( $limit = 5, $min_duration_s = 0.01 ) {
+	global $wpdb;
+
+	if ( ! defined( 'SAVEQUERIES' ) || ! SAVEQUERIES || empty( $wpdb->queries ) || ! is_array( $wpdb->queries ) ) {
+		return array();
+	}
+
+	$queries = array();
+
+	foreach ( $wpdb->queries as $entry ) {
+		if ( ! is_array( $entry ) || ! isset( $entry[0], $entry[1] ) ) {
+			continue;
+		}
+
+		$duration = (float) $entry[1];
+		if ( $duration < $min_duration_s ) {
+			continue;
+		}
+
+		$sql    = preg_replace( '/\s+/', ' ', trim( (string) $entry[0] ) );
+		$caller = isset( $entry[2] ) ? preg_replace( '/\s+/', ' ', trim( (string) $entry[2] ) ) : '';
+
+		if ( strlen( $sql ) > 220 ) {
+			$sql = substr( $sql, 0, 217 ) . '...';
+		}
+
+		if ( strlen( $caller ) > 140 ) {
+			$caller = substr( $caller, 0, 137 ) . '...';
+		}
+
+		$queries[] = array(
+			'duration' => $duration,
+			'sql'      => $sql,
+			'caller'   => $caller,
+		);
+	}
+
+	usort(
+		$queries,
+		static function( $left, $right ) {
+			return $left['duration'] < $right['duration'] ? 1 : -1;
+		}
+	);
+
+	return array_slice( $queries, 0, $limit );
+}
+
+/**
+ * Format the slowest SQL queries into a log-friendly string.
+ *
+ * @param array $queries Query list.
+ * @return string
+ */
+function smpt_access_format_slowest_queries( array $queries ) {
+	$parts = array();
+
+	foreach ( $queries as $index => $query ) {
+		$part = sprintf(
+			'#%1$d %2$.4fs %3$s',
+			$index + 1,
+			$query['duration'],
+			$query['sql']
+		);
+
+		if ( ! empty( $query['caller'] ) ) {
+			$part .= ' [' . $query['caller'] . ']';
+		}
+
+		$parts[] = $part;
+	}
+
+	return implode( ' || ', $parts );
+}
+
+/**
+ * Format geo lookup attempts into a log-friendly string.
+ *
+ * @param array $attempts Geo attempts.
+ * @return string
+ */
+function smpt_access_format_geo_attempts( array $attempts ) {
+	$parts = array();
+
+	foreach ( $attempts as $attempt ) {
+		if ( empty( $attempt['provider'] ) ) {
+			continue;
+		}
+
+		$parts[] = sprintf(
+			'%1$s:%2$.3fs:%3$s',
+			$attempt['provider'],
+			isset( $attempt['elapsed'] ) ? (float) $attempt['elapsed'] : 0,
+			isset( $attempt['result'] ) ? $attempt['result'] : 'unknown'
+		);
+	}
+
+	return implode( ', ', $parts );
 }
 
 /**
@@ -147,6 +679,8 @@ function smpt_access_trace( $phase, array $context = array() ) {
  * @return void
  */
 function smpt_access_trace_request_start() {
+	smpt_access_profile_set_meta( 'request_uri', isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/' );
+	smpt_access_profile_mark_checkpoint( 'request_start' );
 	smpt_access_trace(
 		'request_start',
 		array(
@@ -166,6 +700,7 @@ add_action( 'muplugins_loaded', 'smpt_access_trace_request_start', 1 );
 add_action(
 	'init',
 	static function() {
+		smpt_access_profile_mark_checkpoint( 'init' );
 		smpt_access_trace( 'hook_init' );
 	},
 	9999
@@ -174,6 +709,7 @@ add_action(
 add_action(
 	'parse_request',
 	static function() {
+		smpt_access_profile_mark_checkpoint( 'parse_request' );
 		smpt_access_trace( 'hook_parse_request' );
 	},
 	9999
@@ -182,7 +718,96 @@ add_action(
 add_action(
 	'wp',
 	static function() {
+		$summary = smpt_access_get_main_query_summary();
+
+		if ( ! empty( $summary ) ) {
+			smpt_access_profile_set_meta( 'main_query', $summary );
+		}
+
+		smpt_access_profile_mark_checkpoint( 'wp', $summary );
 		smpt_access_trace( 'hook_wp' );
+	},
+	9999
+);
+
+add_action(
+	'admin_init',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'admin_init' );
+	},
+	9999
+);
+
+add_action(
+	'current_screen',
+	static function( $screen ) {
+		$screen_id = is_object( $screen ) && ! empty( $screen->id ) ? (string) $screen->id : '';
+		smpt_access_profile_set_meta( 'admin_screen', $screen_id );
+		smpt_access_profile_mark_checkpoint( 'current_screen', array( 'screen' => $screen_id ) );
+	},
+	9999
+);
+
+add_action(
+	'load-index.php',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'load_index' );
+	},
+	9999
+);
+
+add_action(
+	'wp_dashboard_setup',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'wp_dashboard_setup' );
+	},
+	9999
+);
+
+add_action(
+	'admin_enqueue_scripts',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'admin_enqueue_scripts' );
+	},
+	9999
+);
+
+add_action(
+	'admin_head',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'admin_head' );
+	},
+	9999
+);
+
+add_action(
+	'in_admin_header',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'in_admin_header' );
+	},
+	9999
+);
+
+add_action(
+	'admin_notices',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'admin_notices' );
+	},
+	9999
+);
+
+add_action(
+	'all_admin_notices',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'all_admin_notices' );
+	},
+	9999
+);
+
+add_action(
+	'admin_footer',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'admin_footer' );
 	},
 	9999
 );
@@ -190,18 +815,101 @@ add_action(
 add_action(
 	'template_redirect',
 	static function() {
+		smpt_access_profile_mark_checkpoint( 'template_redirect' );
 		smpt_access_trace( 'hook_template_redirect' );
 	},
 	9999
 );
 
+add_action(
+	'wp_enqueue_scripts',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'wp_enqueue_scripts' );
+	},
+	9999
+);
+
+add_action(
+	'wp_head',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'wp_head' );
+	},
+	9999
+);
+
+add_action(
+	'loop_start',
+	static function( $query ) {
+		if ( $query instanceof WP_Query && $query->is_main_query() ) {
+			smpt_access_profile_mark_checkpoint(
+				'loop_start',
+				array(
+					'post_count' => (int) $query->post_count,
+				)
+			);
+		}
+	},
+	1
+);
+
+add_action(
+	'loop_end',
+	static function( $query ) {
+		if ( $query instanceof WP_Query && $query->is_main_query() ) {
+			smpt_access_profile_mark_checkpoint(
+				'loop_end',
+				array(
+					'post_count' => (int) $query->post_count,
+				)
+			);
+		}
+	},
+	9999
+);
+
+add_action(
+	'wp_footer',
+	static function() {
+		smpt_access_profile_mark_checkpoint( 'wp_footer' );
+	},
+	1
+);
+
 add_filter(
 	'template_include',
 	static function( $template ) {
+		smpt_access_profile_set_meta( 'template', $template );
+		smpt_access_profile_mark_checkpoint( 'template_include', array( 'template' => basename( $template ) ) );
 		smpt_access_trace( 'hook_template_include', array( 'template' => $template ) );
 		return $template;
 	},
 	9999
+);
+
+add_action(
+	'plugins_loaded',
+	static function() {
+		if ( ! is_admin() || ! smpt_access_is_admin_dashboard_request() ) {
+			return;
+		}
+
+		foreach ( array( 'admin_init', 'current_screen', 'load-index.php', 'wp_dashboard_setup', 'admin_enqueue_scripts', 'admin_head', 'in_admin_header', 'admin_notices', 'all_admin_notices', 'admin_footer' ) as $hook_name ) {
+			smpt_access_wrap_hook_callbacks( $hook_name );
+		}
+	},
+	9999
+);
+
+add_action(
+	'wp_dashboard_setup',
+	static function() {
+		if ( ! is_admin() || ! smpt_access_is_admin_dashboard_request() ) {
+			return;
+		}
+
+		smpt_access_wrap_dashboard_widgets();
+	},
+	99999
 );
 
 /**
@@ -213,6 +921,9 @@ function smpt_access_trace_request_summary() {
 	global $wpdb;
 
 	$decision = function_exists( 'smpt_get_visitor_access_decision' ) ? smpt_get_visitor_access_decision() : array();
+	$meta     = smpt_access_profile_get_meta();
+
+	smpt_access_profile_mark_checkpoint( 'shutdown' );
 
 	smpt_access_trace(
 		'request_end',
@@ -228,6 +939,7 @@ function smpt_access_trace_request_summary() {
 			'doing_ajax'   => wp_doing_ajax(),
 			'doing_cron'   => wp_doing_cron(),
 			'status_guess' => http_response_code(),
+			'template'     => isset( $meta['template'] ) ? basename( (string) $meta['template'] ) : '',
 		)
 	);
 }
@@ -377,6 +1089,7 @@ function smpt_lookup_country_code( $ip ) {
 	$cf_country = strtoupper( trim( (string) $cf_country ) );
 
 	if ( preg_match( '/^[A-Z]{2}$/', $cf_country ) ) {
+		smpt_access_profile_set_meta( 'geo_lookup', array( 'country' => $cf_country, 'source' => 'cloudflare' ) );
 		return array(
 			'country' => $cf_country,
 			'source'  => 'cloudflare',
@@ -384,6 +1097,7 @@ function smpt_lookup_country_code( $ip ) {
 	}
 
 	if ( '' === $ip ) {
+		smpt_access_profile_set_meta( 'geo_lookup', array( 'country' => 'UNKNOWN', 'source' => 'invalid-ip' ) );
 		return array(
 			'country' => 'UNKNOWN',
 			'source'  => 'invalid-ip',
@@ -391,6 +1105,7 @@ function smpt_lookup_country_code( $ip ) {
 	}
 
 	if ( smpt_is_private_or_reserved_ip( $ip ) ) {
+		smpt_access_profile_set_meta( 'geo_lookup', array( 'country' => 'UNKNOWN', 'source' => 'private-ip' ) );
 		return array(
 			'country' => 'UNKNOWN',
 			'source'  => 'private-ip',
@@ -430,6 +1145,7 @@ function smpt_lookup_country_code( $ip ) {
 	);
 
 	foreach ( $providers as $provider ) {
+		$lookup_start = microtime( true );
 		$response = wp_remote_get(
 			$provider['url'],
 			array(
@@ -440,7 +1156,17 @@ function smpt_lookup_country_code( $ip ) {
 			)
 		);
 
+		$elapsed = microtime( true ) - $lookup_start;
+
 		if ( is_wp_error( $response ) ) {
+			smpt_access_profile_append_meta(
+				'geo_attempts',
+				array(
+					'provider' => $provider['source'],
+					'elapsed'  => $elapsed,
+					'result'   => 'error',
+				)
+			);
 			smpt_access_log( sprintf( 'Geo provider %s failed: %s', $provider['source'], $response->get_error_message() ) );
 			continue;
 		}
@@ -448,18 +1174,46 @@ function smpt_lookup_country_code( $ip ) {
 		$body = wp_remote_retrieve_body( $response );
 		$data = json_decode( $body, true );
 		if ( ! is_array( $data ) ) {
+			smpt_access_profile_append_meta(
+				'geo_attempts',
+				array(
+					'provider' => $provider['source'],
+					'elapsed'  => $elapsed,
+					'result'   => 'invalid-json',
+				)
+			);
 			smpt_access_log( sprintf( 'Geo provider %s returned invalid JSON.', $provider['source'] ) );
 			continue;
 		}
 
 		$country = strtoupper( trim( (string) $provider['parse']( $data ) ) );
 		if ( preg_match( '/^[A-Z]{2}$/', $country ) ) {
+			smpt_access_profile_append_meta(
+				'geo_attempts',
+				array(
+					'provider' => $provider['source'],
+					'elapsed'  => $elapsed,
+					'result'   => 'success:' . $country,
+				)
+			);
+			smpt_access_profile_set_meta( 'geo_lookup', array( 'country' => $country, 'source' => $provider['source'] ) );
 			return array(
 				'country' => $country,
 				'source'  => $provider['source'],
 			);
 		}
+
+		smpt_access_profile_append_meta(
+			'geo_attempts',
+			array(
+				'provider' => $provider['source'],
+				'elapsed'  => $elapsed,
+				'result'   => 'no-match',
+			)
+		);
 	}
+
+	smpt_access_profile_set_meta( 'geo_lookup', array( 'country' => 'UNKNOWN', 'source' => 'lookup-failed' ) );
 
 	return array(
 		'country' => 'UNKNOWN',
@@ -490,6 +1244,7 @@ function smpt_get_visitor_access_decision() {
 			'source'  => 'admin-preview',
 			'exp'     => $now + SMPT_ACCESS_COOKIE_TTL,
 		);
+		smpt_access_profile_set_meta( 'decision', $decision );
 		smpt_access_log(
 			sprintf(
 				'Decision: allowed=no country=PREVIEW source=admin-preview request=%s',
@@ -506,6 +1261,7 @@ function smpt_get_visitor_access_decision() {
 			'source'  => 'logged-in',
 			'exp'     => $now + SMPT_ACCESS_COOKIE_TTL,
 		);
+		smpt_access_profile_set_meta( 'decision', $decision );
 		smpt_access_log(
 			sprintf(
 				'Decision: allowed=yes country=LOGGED_IN source=logged-in request=%s',
@@ -522,6 +1278,7 @@ function smpt_get_visitor_access_decision() {
 			'source'  => 'wayback',
 			'exp'     => $now + SMPT_ACCESS_COOKIE_TTL,
 		);
+		smpt_access_profile_set_meta( 'decision', $decision );
 		smpt_set_access_cookie( $decision );
 		return $decision;
 	}
@@ -533,6 +1290,7 @@ function smpt_get_visitor_access_decision() {
 			'source'  => 'known-bot',
 			'exp'     => $now + SMPT_ACCESS_COOKIE_TTL,
 		);
+		smpt_access_profile_set_meta( 'decision', $decision );
 		return $decision;
 	}
 
@@ -543,6 +1301,7 @@ function smpt_get_visitor_access_decision() {
 			'source'  => 'denied-ip',
 			'exp'     => $now + SMPT_ACCESS_COOKIE_TTL,
 		);
+		smpt_access_profile_set_meta( 'decision', $decision );
 		smpt_set_access_cookie( $decision );
 		return $decision;
 	}
@@ -554,6 +1313,7 @@ function smpt_get_visitor_access_decision() {
 			'source'  => 'allowed-ip',
 			'exp'     => $now + SMPT_ACCESS_COOKIE_TTL,
 		);
+		smpt_access_profile_set_meta( 'decision', $decision );
 		smpt_set_access_cookie( $decision );
 		return $decision;
 	}
@@ -563,6 +1323,8 @@ function smpt_get_visitor_access_decision() {
 		$cached = smpt_decode_access_cookie( wp_unslash( $_COOKIE[ $cookie_name ] ) );
 		if ( null !== $cached ) {
 			$decision = $cached;
+			smpt_access_profile_set_meta( 'decision', $decision );
+			smpt_access_profile_set_meta( 'decision_cache', 'hit' );
 			return $decision;
 		}
 	}
@@ -578,6 +1340,8 @@ function smpt_get_visitor_access_decision() {
 		'exp'     => $now + SMPT_ACCESS_COOKIE_TTL,
 	);
 
+	smpt_access_profile_set_meta( 'decision', $decision );
+	smpt_access_profile_set_meta( 'decision_cache', 'miss' );
 	smpt_set_access_cookie( $decision );
 	smpt_access_log( sprintf( 'Decision: allowed=%s country=%s source=%s', $allowed ? 'yes' : 'no', $country, $source ) );
 
@@ -600,7 +1364,7 @@ function smpt_current_visitor_is_allowed() {
  * @return void
  */
 function smpt_log_slow_frontend_requests() {
-	if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+	if ( wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 		return;
 	}
 
@@ -610,12 +1374,21 @@ function smpt_log_slow_frontend_requests() {
 
 	$duration = microtime( true ) - SMPT_REQUEST_START;
 
-	if ( $duration < 1 ) {
+	if ( $duration < SMPT_SLOW_REQUEST_THRESHOLD ) {
 		return;
 	}
 
+	smpt_access_profile_mark_checkpoint( 'shutdown' );
+
 	$decision = smpt_get_visitor_access_decision();
 	$request  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+	$meta     = smpt_access_profile_get_meta();
+	$profile  = smpt_access_profile_format_checkpoints();
+	$template = isset( $meta['template'] ) ? basename( (string) $meta['template'] ) : '';
+	$main     = isset( $meta['main_query'] ) && is_array( $meta['main_query'] ) ? $meta['main_query'] : array();
+	$geo      = isset( $meta['geo_lookup'] ) && is_array( $meta['geo_lookup'] ) ? $meta['geo_lookup'] : array();
+	$geo_log  = isset( $meta['geo_attempts'] ) && is_array( $meta['geo_attempts'] ) ? smpt_access_format_geo_attempts( $meta['geo_attempts'] ) : '';
+	$screen   = isset( $meta['admin_screen'] ) ? (string) $meta['admin_screen'] : '';
 
 	smpt_access_log(
 		sprintf(
@@ -627,5 +1400,37 @@ function smpt_log_slow_frontend_requests() {
 			( function_exists( 'smpt_should_apply_blocked_preview' ) && smpt_should_apply_blocked_preview() ) ? 'yes' : 'no'
 		)
 	);
+
+	smpt_access_log(
+		sprintf(
+			'Slow request profile: request=%1$s template=%2$s screen=%3$s main=%4$s object_id=%5$s posts=%6$d found=%7$d decision=%8$s geo=%9$s checkpoints=%10$s',
+			$request,
+			$template ? $template : '(none)',
+			$screen ? $screen : '(none)',
+			isset( $main['type'] ) ? $main['type'] : 'unknown',
+			isset( $main['object_id'] ) ? (int) $main['object_id'] : 0,
+			isset( $main['post_count'] ) ? (int) $main['post_count'] : 0,
+			isset( $main['found_posts'] ) ? (int) $main['found_posts'] : 0,
+			isset( $decision['source'] ) ? $decision['source'] : 'unknown',
+			! empty( $geo_log ) ? $geo_log : ( ! empty( $geo['source'] ) ? $geo['source'] : 'n/a' ),
+			$profile ? $profile : '(none)'
+		)
+	);
+
+	if ( is_admin() && ! empty( $meta['hook_callback_timings'] ) && is_array( $meta['hook_callback_timings'] ) ) {
+		smpt_access_log( 'Slow request admin hooks: ' . smpt_access_format_timed_samples( $meta['hook_callback_timings'], 'callback' ) );
+	}
+
+	if ( is_admin() && ! empty( $meta['dashboard_widget_timings'] ) && is_array( $meta['dashboard_widget_timings'] ) ) {
+		smpt_access_log( 'Slow request dashboard widgets: ' . smpt_access_format_timed_samples( $meta['dashboard_widget_timings'], 'title' ) );
+	}
+
+	if ( smpt_access_trace_enabled() ) {
+		$queries = smpt_access_get_slowest_queries();
+
+		if ( ! empty( $queries ) ) {
+			smpt_access_log( 'Slow request SQL: ' . smpt_access_format_slowest_queries( $queries ) );
+		}
+	}
 }
 add_action( 'shutdown', 'smpt_log_slow_frontend_requests', 9999 );

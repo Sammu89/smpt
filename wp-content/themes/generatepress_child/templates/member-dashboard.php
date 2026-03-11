@@ -9,7 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$smpt_dashboard_user = wp_get_current_user();
+$smpt_dashboard_context = smpt_member_get_dashboard_context();
+$smpt_dashboard_user    = $smpt_dashboard_context['user'];
+$smpt_page_title        = get_the_title() ? get_the_title() : __( 'Painel', 'generatepress' );
 
 get_header();
 ?>
@@ -22,7 +24,7 @@ get_header();
 			<div class="smpt-member-card">
 				<header class="smpt-member-card__header">
 					<p class="smpt-member-kicker"><?php esc_html_e( 'Area Moonies', 'generatepress' ); ?></p>
-					<h1><?php the_title(); ?></h1>
+					<h1><?php echo esc_html( $smpt_page_title ); ?></h1>
 					<p><?php echo esc_html( sprintf( __( 'Bem-vinda de volta, %s.', 'generatepress' ), $smpt_dashboard_user->display_name ) ); ?></p>
 				</header>
 
@@ -43,8 +45,8 @@ get_header();
 								<span><?php echo esc_html( $smpt_dashboard_user->user_email ); ?></span>
 							</li>
 							<li>
-								<strong><?php esc_html_e( 'Papel', 'generatepress' ); ?></strong>
-								<span><?php esc_html_e( 'Moonies', 'generatepress' ); ?></span>
+								<strong><?php esc_html_e( 'Perfis', 'generatepress' ); ?></strong>
+								<span><?php echo esc_html( $smpt_dashboard_context['roles'] ? implode( ', ', $smpt_dashboard_context['roles'] ) : __( 'Membro', 'generatepress' ) ); ?></span>
 							</li>
 						</ul>
 					</section>
@@ -52,10 +54,10 @@ get_header();
 					<section class="smpt-member-panel is-active">
 						<h2><?php esc_html_e( 'Atalhos', 'generatepress' ); ?></h2>
 						<div class="smpt-member-actions">
-							<a class="smpt-member-button" href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php esc_html_e( 'Voltar ao site', 'generatepress' ); ?></a>
-							<a class="smpt-member-button smpt-member-button--ghost" href="<?php echo esc_url( smpt_member_get_url( 'logout' ) ); ?>"><?php esc_html_e( 'Desconectar', 'generatepress' ); ?></a>
+							<a class="smpt-member-button" href="<?php echo esc_url( $smpt_dashboard_context['home_url'] ); ?>"><?php esc_html_e( 'Voltar ao site', 'generatepress' ); ?></a>
+							<a class="smpt-member-button smpt-member-button--ghost" href="<?php echo esc_url( $smpt_dashboard_context['logout_url'] ); ?>"><?php esc_html_e( 'Desconectar', 'generatepress' ); ?></a>
 						</div>
-						<p class="smpt-member-note"><?php esc_html_e( 'As contas Moonies usam apenas este painel frontal e nao acedem ao backend do WordPress.', 'generatepress' ); ?></p>
+						<p class="smpt-member-note"><?php esc_html_e( 'Este painel frontal e o destino padrao da autenticacao. O fluxo normal de entrada nao expõe o backend do WordPress.', 'generatepress' ); ?></p>
 					</section>
 				</div>
 			</div>
