@@ -5,6 +5,12 @@
 !*/
 !/.gitignore
 !/README.md
+!/package.json
+!/package-lock.json
+!/playwright.config.ts
+!/tests/
+!/tests/e2e/
+!/tests/e2e/**
 
 # Track only the custom site code we maintain
 !wp-content/
@@ -21,6 +27,10 @@ wp-config.php
 *.tar
 *.gz
 *.log
+
+# Playwright generated outputs
+tests/e2e-report/
+tests/e2e-results/
 
 # Explicitly ignore the rest of wp-content
 wp-content/plugins/

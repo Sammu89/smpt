@@ -1,0 +1,30 @@
+{
+  "name": "public",
+  "version": "1.0.0",
+  "description": "This repository tracks only the custom code layer of the site:",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test:e2e",
+    "test:e2e:setup": "npm ci && playwright install chromium",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:codegen": "playwright codegen --target=playwright-test https://smpt.local",
+    "test:e2e:report": "playwright show-report tests/e2e-report"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sammu89/smpt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Sammu89/smpt/issues"
+  },
+  "homepage": "https://github.com/Sammu89/smpt#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}
