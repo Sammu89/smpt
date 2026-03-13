@@ -3,14 +3,14 @@ import { defineConfig, devices } from '@playwright/test';
 const baseURL = process.env.BASE_URL ?? 'https://smpt.local';
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './playwright-tests',
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
   reporter: [
     ['list'],
-    ['html', { outputFolder: 'tests/e2e-report', open: 'never' }],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
-  outputDir: 'tests/e2e-results',
+  outputDir: 'playwright-results',
   use: {
     baseURL,
     ignoreHTTPSErrors: true,

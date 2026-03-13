@@ -26,7 +26,7 @@ $j(document).ready(function() {
 
         // Get the file name from data attribute and track the music
         var currentFileName = $currentAudio.data('file-name');
-        trackMusica(currentFileName); // Call trackMusica function with file name
+        smptTrack('music_stream', currentFileName); // Track music stream event
 
         // Pause all other audio elements
         $j('audio').each(function() {

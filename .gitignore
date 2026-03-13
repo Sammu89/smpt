@@ -4,13 +4,13 @@
 # Allow Git to traverse directories
 !*/
 !/.gitignore
+!/AGENTS.md
 !/README.md
 !/package.json
 !/package-lock.json
 !/playwright.config.ts
-!/tests/
-!/tests/e2e/
-!/tests/e2e/**
+!/playwright-tests/
+!/playwright-tests/**
 
 # Track only the custom site code we maintain
 !wp-content/
@@ -29,10 +29,14 @@ wp-config.php
 *.log
 
 # Playwright generated outputs
+playwright-report/
+playwright-results/
 tests/e2e-report/
 tests/e2e-results/
 
 # Explicitly ignore the rest of wp-content
+wp-content/mu-plugins/smpt-site/GA4_Analytics_*/
+wp-content/mu-plugins/smpt-site/vendor/
 wp-content/plugins/
 wp-content/uploads/
 wp-content/languages/

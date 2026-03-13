@@ -84,7 +84,7 @@ function VerOnline(num) {
         // Check if this episodeId has already been tracked
         if (!trackedVideos.has(episodeId)) {
             trackedVideos.add(episodeId); // Add the episodeId to the set
-            trackStream(episodeId); // Call the tracking function
+            smptTrack('stream', episodeId); // Call the tracking function
         }
     });
 }

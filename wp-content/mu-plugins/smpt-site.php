@@ -23,6 +23,7 @@ function smpt_site_plugin_url( $relative_path = '' ) {
 
 $smpt_site_includes = array(
 	'/inc/core.php',
+	'/inc/sentry.php',
 	'/inc/assets.php',
 	'/inc/head-assets.php',
 	'/inc/access-control.php',
@@ -30,6 +31,8 @@ $smpt_site_includes = array(
 	'/inc/content-protection.php',
 	'/inc/member-area.php',
 	'/inc/modules.php',
+	'/inc/analytics.php',
+	'/inc/analytics-dashboard.php',
 );
 
 foreach ( $smpt_site_includes as $smpt_site_include ) {

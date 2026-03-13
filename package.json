@@ -4,13 +4,20 @@
   "description": "This repository tracks only the custom code layer of the site:",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test:e2e",
+    "test": "npm run test:smpt",
+    "ga4:export": "node wp-content/mu-plugins/smpt-site/tools/export-ga4.js",
+    "test:smpt:setup": "npm run test:e2e:setup",
+    "test:smpt": "npm run test:e2e",
+    "test:smpt:ui": "npm run test:e2e:ui",
+    "test:smpt:headed": "npm run test:e2e:headed",
+    "test:smpt:codegen": "npm run test:e2e:codegen",
+    "test:smpt:report": "npm run test:e2e:report",
     "test:e2e:setup": "npm ci && playwright install chromium",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:codegen": "playwright codegen --target=playwright-test https://smpt.local",
-    "test:e2e:report": "playwright show-report tests/e2e-report"
+    "test:e2e:report": "playwright show-report playwright-report"
   },
   "repository": {
     "type": "git",
@@ -26,5 +33,8 @@
   "homepage": "https://github.com/Sammu89/smpt#readme",
   "devDependencies": {
     "@playwright/test": "^1.58.2"
+  },
+  "dependencies": {
+    "google-auth-library": "^10.6.1"
   }
 }
