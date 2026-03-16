@@ -222,8 +222,12 @@ video {
   padding: 10px;
   border-top: 1px solid var(--smpt-table-divider-color-resolved, #eee);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 6px;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
 }
 
 .smpt-subsection[hidden] {
@@ -243,6 +247,7 @@ video {
 .smpt-play--stream {
   background: var(--accent);
   color: #fff;
+  width: 100%;
 }
 
 .smpt-play--stream:hover {
