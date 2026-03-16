@@ -319,7 +319,7 @@ video {
   display: block;
   aspect-ratio: 35 / 29;
   object-fit: contain;
-  object-position: center center;
+  object-position: center top;
   background: #000;
 }
 
