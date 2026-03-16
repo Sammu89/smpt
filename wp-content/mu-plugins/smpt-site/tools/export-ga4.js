@@ -8,7 +8,7 @@ const DEFAULT_GA4_URL =
 	'https://analytics.google.com/analytics/web/#/a26168234p416744088/reports/intelligenthome';
 const DEFAULT_PROPERTY_ID = parsePropertyId(DEFAULT_GA4_URL);
 const PROPERTY_ID = process.env.GA4_PROPERTY_ID || parsePropertyId(process.env.GA4_PROPERTY_URL || '') || DEFAULT_PROPERTY_ID;
-const START_DATE = process.env.GA4_START_DATE || '365daysAgo';
+const START_DATE = process.env.GA4_START_DATE || '2015-08-14';
 const END_DATE = process.env.GA4_END_DATE || 'today';
 const OUTPUT_ROOT = path.resolve(__dirname, '..');
 const TIMESTAMP = buildTimestamp();
@@ -39,9 +39,8 @@ async function main() {
 		outputDir: OUTPUT_DIR,
 		generatedAt: new Date().toISOString(),
 		notes: [
-			'This export uses the GA4 Data API and Admin API, not the Analytics UI.',
-			'Custom event names are included in the event reports.',
-			'Custom dimensions and metrics are exported individually when available.',
+			'This export uses the GA4 Data API, not the Analytics UI.',
+			'It writes only the daily item counts needed for historical rankings and period-based totals.',
 			'If you need raw event-level GA4 data, use GA4 BigQuery export instead.',
 		],
 		files: [],
@@ -57,86 +56,30 @@ async function main() {
 	);
 	writeJson(manifest, 'metadata.json', metadata);
 
-	const customDimensions = await listAllPages(
-		client,
-		`https://analyticsadmin.googleapis.com/v1beta/properties/${PROPERTY_ID}/customDimensions`
-	);
-	writeJson(manifest, 'custom-dimensions.json', customDimensions);
+	const eventCategoryDimension = findCustomDimension(metadata, 'event_category');
+	const eventLabelDimension = findCustomDimension(metadata, 'event_label');
 
-	const customMetrics = await listAllPages(
-		client,
-		`https://analyticsadmin.googleapis.com/v1beta/properties/${PROPERTY_ID}/customMetrics`
-	);
-	writeJson(manifest, 'custom-metrics.json', customMetrics);
-
-	const standardReports = [
-		{
-			fileBase: 'events_by_date',
-			body: {
-				dateRanges: [{ startDate: START_DATE, endDate: END_DATE }],
-				dimensions: [{ name: 'date' }, { name: 'eventName' }],
-				metrics: [
-					{ name: 'eventCount' },
-					{ name: 'totalUsers' },
-					{ name: 'activeUsers' },
-					{ name: 'eventCountPerUser' },
-				],
-				orderBys: [{ dimension: { dimensionName: 'date' } }, { dimension: { dimensionName: 'eventName' } }],
-			},
-		},
-		{
-			fileBase: 'pages_by_date',
-			body: {
-				dateRanges: [{ startDate: START_DATE, endDate: END_DATE }],
-				dimensions: [{ name: 'date' }, { name: 'pagePathPlusQueryString' }],
-				metrics: [{ name: 'screenPageViews' }, { name: 'totalUsers' }],
-				orderBys: [{ dimension: { dimensionName: 'date' } }],
-			},
-		},
-		{
-			fileBase: 'traffic_by_date',
-			body: {
-				dateRanges: [{ startDate: START_DATE, endDate: END_DATE }],
-				dimensions: [{ name: 'date' }, { name: 'sessionSourceMedium' }],
-				metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
-				orderBys: [{ dimension: { dimensionName: 'date' } }],
-			},
-		},
-	];
-
-	for (const report of standardReports) {
-		const result = await runPagedReport(client, PROPERTY_ID, report.body);
-		writeReport(manifest, report.fileBase, result);
-	}
-
-	const customDimensionNames = extractCustomDimensionNames(metadata);
-	for (const dimensionName of customDimensionNames) {
-		try {
-			const result = await runPagedReport(client, PROPERTY_ID, {
-				dateRanges: [{ startDate: START_DATE, endDate: END_DATE }],
-				dimensions: [{ name: 'date' }, { name: 'eventName' }, { name: dimensionName }],
-				metrics: [{ name: 'eventCount' }],
-				orderBys: [{ dimension: { dimensionName: 'date' } }],
-			});
-			writeReport(manifest, `custom_dimension_${safeFileName(dimensionName)}`, result);
-		} catch (error) {
-			recordError(manifest, `custom-dimension:${dimensionName}`, error);
-		}
-	}
-
-	const customMetricNames = extractCustomMetricNames(metadata);
-	for (const metricName of customMetricNames) {
-		try {
-			const result = await runPagedReport(client, PROPERTY_ID, {
-				dateRanges: [{ startDate: START_DATE, endDate: END_DATE }],
-				dimensions: [{ name: 'date' }, { name: 'eventName' }],
-				metrics: [{ name: 'eventCount' }, { name: metricName }],
-				orderBys: [{ dimension: { dimensionName: 'date' } }],
-			});
-			writeReport(manifest, `custom_metric_${safeFileName(metricName)}`, result);
-		} catch (error) {
-			recordError(manifest, `custom-metric:${metricName}`, error);
-		}
+	if (eventCategoryDimension && eventLabelDimension) {
+		const result = await runPagedReport(client, PROPERTY_ID, {
+			dateRanges: [{ startDate: START_DATE, endDate: END_DATE }],
+			dimensions: [
+				{ name: 'date' },
+				{ name: 'eventName' },
+				{ name: eventCategoryDimension },
+				{ name: eventLabelDimension },
+			],
+			metrics: [{ name: 'eventCount' }],
+			orderBys: [
+				{ dimension: { dimensionName: 'date' } },
+				{ dimension: { dimensionName: 'eventName' } },
+				{ dimension: { dimensionName: eventLabelDimension } },
+			],
+		});
+		writeReport(manifest, 'event_items_by_date', result);
+	} else {
+		throw new Error(
+			'Could not find custom dimensions for event_category and event_label in GA4 metadata.'
+		);
 	}
 
 	fs.writeFileSync(
@@ -224,23 +167,6 @@ async function runPagedReport(client, propertyId, baseBody) {
 	return merged;
 }
 
-async function listAllPages(client, url) {
-	let nextPageToken = '';
-	const all = [];
-
-	do {
-		const pageUrl = nextPageToken
-			? `${url}?pageToken=${encodeURIComponent(nextPageToken)}`
-			: url;
-		const response = await requestJson(client, 'GET', pageUrl);
-		const values = response.customDimensions || response.customMetrics || [];
-		all.push(...values);
-		nextPageToken = response.nextPageToken || '';
-	} while (nextPageToken);
-
-	return all;
-}
-
 async function requestJson(client, method, url, data) {
 	const response = await client.request({
 		method,
@@ -283,21 +209,16 @@ function recordError(manifest, context, error) {
 	});
 }
 
-function extractCustomDimensionNames(metadata) {
-	return unique(
+function findCustomDimension(metadata, suffix) {
+	return (
 		(metadata.dimensions || [])
 			.map((item) => item.apiName)
-			.filter((name) => typeof name === 'string')
-			.filter((name) => name.startsWith('customEvent:') || name.startsWith('customUser:'))
-	);
-}
-
-function extractCustomMetricNames(metadata) {
-	return unique(
-		(metadata.metrics || [])
-			.map((item) => item.apiName)
-			.filter((name) => typeof name === 'string')
-			.filter((name) => name.startsWith('customEvent:'))
+			.find(
+				(name) =>
+					typeof name === 'string' &&
+					name.startsWith('customEvent:') &&
+					name.endsWith(suffix)
+			) || ''
 	);
 }
 
@@ -313,13 +234,6 @@ function csvEscape(value) {
 	return normalized;
 }
 
-function safeFileName(value) {
-	return String(value)
-		.replace(/[^a-zA-Z0-9._-]+/g, '_')
-		.replace(/^_+|_+$/g, '')
-		.slice(0, 120) || 'report';
-}
-
 function ensureDir(dirPath) {
 	fs.mkdirSync(dirPath, { recursive: true });
 }
@@ -331,8 +245,4 @@ function buildTimestamp() {
 function parsePropertyId(url) {
 	const match = String(url || '').match(/p(\d+)/);
 	return match ? match[1] : '';
-}
-
-function unique(values) {
-	return [...new Set(values)];
 }

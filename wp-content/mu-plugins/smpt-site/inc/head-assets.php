@@ -8,76 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Enqueue Sentry browser SDK and initialize it early.
- *
- * Loads for both public and admin screens through enqueue hooks.
- *
- * @return void
- */
-function smpt_enqueue_sentry_browser_assets() {
-	if ( ! function_exists( 'smpt_sentry_get_js_config' ) ) {
-		return;
-	}
-
-	$config = smpt_sentry_get_js_config();
-
-	if ( empty( $config['dsn'] ) ) {
-		return;
-	}
-
-	$sdk_version = defined( 'SMPT_SENTRY_BROWSER_SDK_VERSION' ) ? (string) SMPT_SENTRY_BROWSER_SDK_VERSION : '10.20.0';
-	$sdk_url     = sprintf(
-		'https://browser.sentry-cdn.com/%s/bundle.tracing.min.js',
-		rawurlencode( $sdk_version )
-	);
-
-	wp_enqueue_script(
-		'smpt-sentry-browser',
-		$sdk_url,
-		array(),
-		null,
-		false
-	);
-	wp_script_add_data( 'smpt-sentry-browser', 'crossorigin', 'anonymous' );
-
-	$init_config = array(
-		'dsn'              => (string) $config['dsn'],
-		'environment'      => (string) $config['environment'],
-		'tracesSampleRate' => (float) $config['tracesSampleRate'],
-	);
-
-	if ( ! empty( $config['release'] ) ) {
-		$init_config['release'] = (string) $config['release'];
-	}
-
-	$init_script = 'if(window.Sentry){var cfg=' . wp_json_encode( $init_config ) . ';if(typeof window.Sentry.browserTracingIntegration===\'function\'){cfg.integrations=[window.Sentry.browserTracingIntegration()];}window.Sentry.init(cfg);}';
-
-	wp_add_inline_script(
-		'smpt-sentry-browser',
-		$init_script,
-		'after'
-	);
-}
-add_action( 'wp_enqueue_scripts', 'smpt_enqueue_sentry_browser_assets', 1 );
-add_action( 'admin_enqueue_scripts', 'smpt_enqueue_sentry_browser_assets', 1 );
-
-/**
  * Enqueue third-party assets loaded in <head>.
  */
 function smpt_enqueue_external_head_assets() {
-	wp_enqueue_style(
-		'smpt-font-atma',
-		'https://fonts.googleapis.com/css2?family=Atma:wght@300;400;500;600;700&display=swap',
-		array(),
-		null
-	);
-	wp_enqueue_style(
-		'smpt-font-yanone',
-		'https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz',
-		array(),
-		null
-	);
-
 	wp_enqueue_script(
 		'smpt-fontawesome-kit',
 		'https://kit.fontawesome.com/ddf2ba72f8.js',

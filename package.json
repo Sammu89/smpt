@@ -6,12 +6,18 @@
   "scripts": {
     "test": "npm run test:smpt",
     "ga4:export": "node wp-content/mu-plugins/smpt-site/tools/export-ga4.js",
+    "ga4:import": "php wp-content/mu-plugins/smpt-site/tools/import-ga4-history.php",
+    "ga4:import:reset": "php wp-content/mu-plugins/smpt-site/tools/import-ga4-history.php --reset",
+    "ga4:backfill": "npm run ga4:export && npm run ga4:import:reset",
+    "lint:css": "stylelint \"wp-content/themes/generatepress_child/style.css\" \"wp-content/themes/generatepress_child/css/**/*.css\" \"wp-content/mu-plugins/smpt-site/css/**/*.css\"",
+    "lint:css:fix": "npm run lint:css -- --fix",
     "test:smpt:setup": "npm run test:e2e:setup",
     "test:smpt": "npm run test:e2e",
     "test:smpt:ui": "npm run test:e2e:ui",
     "test:smpt:headed": "npm run test:e2e:headed",
     "test:smpt:codegen": "npm run test:e2e:codegen",
     "test:smpt:report": "npm run test:e2e:report",
+    "test:smpt:ga4-backfill": "playwright test playwright-tests/analytics-backfill.spec.ts",
     "test:e2e:setup": "npm ci && playwright install chromium",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -32,7 +38,9 @@
   },
   "homepage": "https://github.com/Sammu89/smpt#readme",
   "devDependencies": {
-    "@playwright/test": "^1.58.2"
+    "@playwright/test": "^1.58.2",
+    "stylelint": "^17.4.0",
+    "stylelint-config-standard": "^40.0.0"
   },
   "dependencies": {
     "google-auth-library": "^10.6.1"

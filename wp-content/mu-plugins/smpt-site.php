@@ -23,7 +23,7 @@ function smpt_site_plugin_url( $relative_path = '' ) {
 
 $smpt_site_includes = array(
 	'/inc/core.php',
-	'/inc/sentry.php',
+	'/inc/cli.php',
 	'/inc/assets.php',
 	'/inc/head-assets.php',
 	'/inc/access-control.php',

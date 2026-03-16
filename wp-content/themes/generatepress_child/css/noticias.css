@@ -27,7 +27,7 @@
     display: flex;
     align-items: center;
     margin-bottom: 10px;
-	background: linear-gradient(to right, var(--cor-primaria) 0%, transparent 80%);
+	background: linear-gradient(to right, var(--accent) 0%, transparent 80%);
     background-position: bottom;
     background-size: 100% 1px;
     background-repeat: no-repeat;

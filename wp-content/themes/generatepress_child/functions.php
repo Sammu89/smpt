@@ -9,8 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $smpt_theme_includes = array(
 	'/inc/assets.php',
+	'/inc/featured-images.php',
+	'/inc/featured-video.php',
 	'/inc/header-hero.php',
+	'/inc/infoboxes.php',
 	'/inc/navigation.php',
+	'/inc/page-nav.php',
+	'/inc/tables.php',
 );
 
 foreach ( $smpt_theme_includes as $smpt_theme_include ) {

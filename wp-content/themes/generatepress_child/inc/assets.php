@@ -25,6 +25,27 @@ function smpt_child_asset_version( $relative_path, $fallback ) {
 }
 
 /**
+ * Determine whether the current request is for one of the episode pages.
+ *
+ * @return bool
+ */
+function smpt_is_episode_page() {
+	if ( ! is_page() ) {
+		return false;
+	}
+
+	return is_page(
+		array(
+			'episodios-s01',
+			'episodios-s02',
+			'episodios-s03',
+			'episodios-s04',
+			'episodios-s05',
+		)
+	);
+}
+
+/**
  * Enqueue migrated custom styles.
  */
 function smpt_generatepress_enqueue_styles() {
@@ -36,6 +57,8 @@ function smpt_generatepress_enqueue_styles() {
 	$header_ver      = smpt_child_asset_version( 'css/header.css', $version );
 	$member_area_ver = smpt_child_asset_version( 'css/member-area.css', $version );
 	$botoes_ver      = smpt_child_asset_version( 'css/botoes_e_links.css', $version );
+	$page_nav_ver    = smpt_child_asset_version( 'css/page-nav.css', $version );
+	$episodios_ver   = smpt_child_asset_version( 'css/episodios.css', $version );
 
 	wp_enqueue_style( 'dashicons' );
 
@@ -75,6 +98,21 @@ function smpt_generatepress_enqueue_styles() {
 		array( 'generate-style' ),
 		$botoes_ver
 	);
+	wp_enqueue_style(
+		'smpt-page-nav-style',
+		get_stylesheet_directory_uri() . '/css/page-nav.css',
+		array( 'generate-style' ),
+		$page_nav_ver
+	);
+
+	if ( smpt_is_episode_page() ) {
+		wp_enqueue_style(
+			'smpt-episodios-style',
+			get_stylesheet_directory_uri() . '/css/episodios.css',
+			array( 'generate-style' ),
+			$episodios_ver
+		);
+	}
 }
 add_action( 'wp_enqueue_scripts', 'smpt_generatepress_enqueue_styles' );
 
@@ -87,6 +125,10 @@ function smpt_generatepress_enqueue_scripts() {
 	$day_key        = wp_date( 'Y-m-d' );
 	$sticky_nav_ver = smpt_child_asset_version( 'javascript/sticky-nav.js', $version );
 	$hero_sky_ver   = smpt_child_asset_version( 'javascript/hero-header-animation.js', $version );
+	$featured_ver   = smpt_child_asset_version( 'javascript/featured-video.js', $version );
+	$infobox_ver    = smpt_child_asset_version( 'javascript/infobox.js', $version );
+	$episodios_ver  = smpt_child_asset_version( 'javascript/video.js', $version );
+	$columns_ver    = smpt_child_asset_version( 'javascript/content-columns.js', $version );
 
 	wp_enqueue_script(
 		'smpt-sticky-nav',
@@ -109,5 +151,41 @@ function smpt_generatepress_enqueue_scripts() {
 		'window.smptHeaderSeed = ' . wp_json_encode( $day_key ) . ';',
 		'before'
 	);
+
+	wp_enqueue_script(
+		'smpt-infobox',
+		get_stylesheet_directory_uri() . '/javascript/infobox.js',
+		array(),
+		$infobox_ver,
+		true
+	);
+
+	wp_enqueue_script(
+		'smpt-content-columns',
+		get_stylesheet_directory_uri() . '/javascript/content-columns.js',
+		array(),
+		$columns_ver,
+		true
+	);
+
+	if ( function_exists( 'smpt_page_has_featured_video' ) && is_page() && smpt_page_has_featured_video( get_queried_object_id() ) ) {
+		wp_enqueue_script(
+			'smpt-featured-video',
+			get_stylesheet_directory_uri() . '/javascript/featured-video.js',
+			array(),
+			$featured_ver,
+			true
+		);
+	}
+
+	if ( smpt_is_episode_page() ) {
+		wp_enqueue_script(
+			'smpt-episodios',
+			get_stylesheet_directory_uri() . '/javascript/video.js',
+			array( 'jquery' ),
+			$episodios_ver,
+			true
+		);
+	}
 }
 add_action( 'wp_enqueue_scripts', 'smpt_generatepress_enqueue_scripts' );

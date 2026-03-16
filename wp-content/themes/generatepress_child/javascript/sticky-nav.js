@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var mobileMenuCloseButton = mobileMenu ? mobileMenu.querySelector(".smpt-mobile-menu__close") : null;
   var sentinel = document.createElement("div");
   var layoutSyncTimeout = null;
+  var stickyStateFrame = null;
   var autoCollapseClass = "smpt-nav-auto-collapsed";
   var lastFocusedElement = null;
   var lastHandledMobileTouchAt = 0;
@@ -44,33 +45,31 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function syncStickyState(shouldStick) {
+    var isSticky = body.classList.contains("smpt-nav-is-sticky");
+
+    if (isSticky === shouldStick) {
+      updateStickySpacer();
+      return;
+    }
+
     body.classList.toggle("smpt-nav-is-sticky", shouldStick);
     updateStickySpacer();
     requestLayoutSync();
   }
 
-  function updateObserver() {
-    if (!("IntersectionObserver" in window)) {
-      syncStickyState(sentinel.getBoundingClientRect().top <= getAdminOffset());
+  function evaluateStickyState() {
+    syncStickyState(sentinel.getBoundingClientRect().top <= getAdminOffset());
+  }
+
+  function requestStickyStateSync() {
+    if (stickyStateFrame) {
       return;
     }
 
-    if (window.smptStickyObserver) {
-      window.smptStickyObserver.disconnect();
-    }
-
-    window.smptStickyObserver = new IntersectionObserver(
-      function (entries) {
-        var entry = entries[0];
-        syncStickyState(entry.intersectionRatio < 1);
-      },
-      {
-        threshold: [1],
-        rootMargin: "-" + getAdminOffset() + "px 0px 0px 0px"
-      }
-    );
-
-    window.smptStickyObserver.observe(sentinel);
+    stickyStateFrame = window.requestAnimationFrame(function () {
+      stickyStateFrame = null;
+      evaluateStickyState();
+    });
   }
 
   function getRenderedWidth(element) {
@@ -358,8 +357,19 @@ document.addEventListener("DOMContentLoaded", function () {
     lastFocusedElement = document.activeElement;
     mobileMenu.hidden = false;
     mobileMenu.setAttribute("aria-hidden", "false");
-    body.classList.add("smpt-mobile-menu-open");
-    htmlEl.classList.add("smpt-mobile-menu-open", "mobile-menu-open");
+
+    if (!body.classList.contains("smpt-mobile-menu-open")) {
+      body.classList.add("smpt-mobile-menu-open");
+    }
+
+    if (!htmlEl.classList.contains("smpt-mobile-menu-open")) {
+      htmlEl.classList.add("smpt-mobile-menu-open");
+    }
+
+    if (!htmlEl.classList.contains("mobile-menu-open")) {
+      htmlEl.classList.add("mobile-menu-open");
+    }
+
     nav.classList.remove("toggled");
 
     if (menuToggle) {
@@ -390,8 +400,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     mobileMenu.classList.remove("is-open");
     mobileMenu.setAttribute("aria-hidden", "true");
-    body.classList.remove("smpt-mobile-menu-open");
-    htmlEl.classList.remove("smpt-mobile-menu-open", "mobile-menu-open");
+
+    if (body.classList.contains("smpt-mobile-menu-open")) {
+      body.classList.remove("smpt-mobile-menu-open");
+    }
+
+    if (htmlEl.classList.contains("smpt-mobile-menu-open")) {
+      htmlEl.classList.remove("smpt-mobile-menu-open");
+    }
+
+    if (htmlEl.classList.contains("mobile-menu-open")) {
+      htmlEl.classList.remove("mobile-menu-open");
+    }
 
     if (menuToggle) {
       menuToggle.setAttribute("aria-expanded", "false");
@@ -620,28 +640,18 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   window.addEventListener("load", requestLayoutSync);
+  window.addEventListener("load", requestStickyStateSync);
+  window.addEventListener("scroll", requestStickyStateSync, { passive: true });
   window.addEventListener("resize", function () {
     if (!nav.classList.contains(autoCollapseClass)) {
       closeOffcanvasMenu({ restoreFocus: false });
     }
 
-    updateObserver();
+    requestStickyStateSync();
     requestLayoutSync();
   });
 
   cloneMenuForOffcanvas();
-
-  if (!("IntersectionObserver" in window)) {
-    function fallbackScrollHandler() {
-      syncStickyState(sentinel.getBoundingClientRect().top <= getAdminOffset());
-    }
-
-    window.addEventListener("scroll", fallbackScrollHandler, { passive: true });
-    fallbackScrollHandler();
-    requestLayoutSync();
-    return;
-  }
-
-  updateObserver();
+  evaluateStickyState();
   requestLayoutSync();
 });

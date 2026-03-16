@@ -1,48 +1,29 @@
 /* Estilos gerais para botões e links com aparência de botão */
-.button, .botao, .botao-download, .episodio-opcoes a, .episodio-opcoes button {
-  background-color: var(--cor-primaria);
+.botao, .botao-download, .episodio-opcoes .button, .episodio-opcoes button, .voltar .botao-voltar {
   border-radius: 5px;
-  color: #fff;
   cursor: pointer;
   display: inline-block;
   font-weight: 700;
   line-height: 1;
   max-height: 40px;
-  padding: 10px 15px;
   margin: auto;
   text-decoration: none!important;
 }
 
 /* Estilo do botão ao passar o rato */
-.button:hover, .botao:hover, .botao-download:hover, .download-opcoes button:hover {
-  background-color: #c1970e;
-}
-
-/* Estilo do botão quando pressionado */
-.button:active, .download-opcoes a:active, .download-opcoes button:active {
+.botao:active, .botao-download:active, .episodio-opcoes .button:active, .episodio-opcoes button:active, .voltar .botao-voltar:active {
   transform: translateY(1px);
 }
 
 /* Estilos para o botão de voltar */
-button.botao-voltar {
-  border: none;
-  border-radius: 5px;
+.botao-voltar {
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  color: var(--cor-primaria);
-  cursor: pointer;
-  font-family: Atma;
+  font-family: Atma, sans-serif;
   font-size: 1.5em;
-  padding: 5px 10px;
-}
-
-/* Remove o sublinhado do link dentro do botão de voltar */
-button.botao-voltar a {
-  text-decoration: none!important;
 }
 
 /* Estilo do botão de voltar ao passar o rato */
-button.botao-voltar:hover {
-  color: var(--cor-primaria);
+.botao-voltar:hover {
   transform: translateY(-3px);
 }
 
@@ -57,18 +38,34 @@ div.voltar {
 
 
 /* Estilos para links sem decoração */
-.entry-content a, article.single-page-article a {
+.entry-content a:not(.button), article.single-page-article a:not(.button) {
     text-decoration: none !important;
     transition: all 1s cubic-bezier(0, 1.25, 1, 1) !important;
     font-weight: 600;
 }
-.entry-content a:hover {
-  border-bottom: 1px var(--cor-primaria);
+.entry-content a:not(.button):hover, article.single-page-article a:not(.button):hover {
+  border-bottom: 1px solid currentColor;
+}
+
+.entry-content a.smpt-link-iconized,
+article.single-page-article a.smpt-link-iconized {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 0.24em;
+}
+
+.entry-content .ico,
+article.single-page-article .ico {
+  display: inline-block;
+  height: 0.8em;
+  margin-right: 0;
+  vertical-align: -0.1em;
+  width: auto;
 }
 
 /* Estilo do link com destaque */
 a.destaque {
-  color: #FF6F61;
+  color: var(--accent);
   display: inline-block;
   font-size: 1.2em;
   font-weight: 600;
@@ -81,14 +78,14 @@ a.destaque {
 
 /* Estilo do link com destaque ao passar o mouse */
  a.destaque:hover {
-  color: var(--cor-secundaria);
+  color: var(--contrast);
   text-shadow: 0 2px 5px rgba(0,0,0,0.2);
   transform: scale(1.05);
 }
 
 /* Estilo do pseudo-elemento após o link com destaque */
 a.destaque::after {
-  background: var(--cor-secundaria);
+  background: currentColor;
   bottom: 0;
   content: '';
   display: block;
@@ -110,6 +107,5 @@ a.destaque:hover::after {
 
 
 .related-post-title a:hover {
-	color: var(--cor-primaria-clara)!important;
+	color: var(--contrast-2)!important;
 }
-

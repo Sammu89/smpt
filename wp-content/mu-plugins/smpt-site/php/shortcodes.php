@@ -5,15 +5,14 @@ function include_css_file_shortcode($atts) {
     $css_file = get_stylesheet_directory_uri() . '/css/' . $type . '.css';
 
     if (in_array($type, ['audio', 'video', 'teste'])) {
-        // Enqueue the main CSS file
-        wp_enqueue_style('custom-' . $type . '-css', $css_file);
-        
-        // If the type is video, also enqueue episodios.css
         if ($type === 'video') {
+            // video.css is no longer used; episodios.css has all episode styles
             $episodios_file = get_stylesheet_directory_uri() . '/css/episodios.css';
             wp_enqueue_style('custom-episodios-css', $episodios_file);
+        } else {
+            wp_enqueue_style('custom-' . $type . '-css', $css_file);
         }
-        
+
         return ''; // Prevent shortcode output
     }
     return ''; // Return empty string if shortcode attribute doesn't match expected values
@@ -44,9 +43,7 @@ function voltar_shortcode($atts) {
     ), $atts, 'voltar');
 
     return '<div class="voltar">
-                <button class="botao-voltar">
-                    <a href="' . esc_url($atts['url']) . '">← Voltar</a>
-                </button>
+                <a class="button botao-voltar" href="' . esc_url($atts['url']) . '">← Voltar</a>
             </div>';
 }
 add_shortcode('voltar', 'voltar_shortcode');
@@ -56,8 +53,8 @@ add_shortcode('voltar', 'voltar_shortcode');
 
 
 /*ICONES INICIO*/
-function icone_shortcode($atts) {
-    $icons = array(
+function smpt_get_link_icons() {
+    return array(
         'magnet' => array(
             'url' => 'https://sm-portugal.com/wp-content/uploads/2023/11/icon-magnet.gif',
             'alt' => 'Magnet link',
@@ -71,155 +68,283 @@ function icone_shortcode($atts) {
             'alt' => 'External link',
         ),
     );
-    
-    $atts = shortcode_atts(
+}
+
+function smpt_get_link_icon_markup( $type ) {
+    $icons = smpt_get_link_icons();
+
+    if ( ! isset( $icons[ $type ] ) ) {
+        return '';
+    }
+
+    $icon = $icons[ $type ];
+
+    return '<img decoding="async" class="ico" src="' . esc_url( $icon['url'] ) . '" alt="' . esc_attr( $icon['alt'] ) . '" height="12" width="12">';
+}
+
+function smpt_get_link_icon_type( $href ) {
+    $href = trim( (string) $href );
+
+    if ( '' === $href || str_starts_with( $href, '#' ) ) {
+        return '';
+    }
+
+    if ( 0 === stripos( $href, 'magnet:' ) ) {
+        return 'magnet';
+    }
+
+    $href_path = (string) wp_parse_url( $href, PHP_URL_PATH );
+
+    if ( preg_match( '/\.torrent$/i', $href_path ) ) {
+        return 'torrent';
+    }
+
+    if ( ! wp_http_validate_url( $href ) ) {
+        return '';
+    }
+
+    $link_host = wp_parse_url( $href, PHP_URL_HOST );
+    $site_host = wp_parse_url( home_url(), PHP_URL_HOST );
+
+    if ( ! $link_host || ! $site_host ) {
+        return '';
+    }
+
+    $internal_hosts = array_filter(
         array(
-            'tipo' => '',
-        ), 
-        $atts,
-        'icone'
+            strtolower( $site_host ),
+            'sm-portugal.com',
+            'www.sm-portugal.com',
+        )
     );
 
-    $attribute = trim($atts['tipo']);
-    
-    if (isset($icons[$attribute])) {
-        $icon = $icons[$attribute];
-        return '<img decoding="async" class="ico" src="' . esc_url($icon['url']) . '" alt="' . esc_attr($icon['alt']) . '" height="12" width="12">';
+    if ( ! in_array( strtolower( $link_host ), $internal_hosts, true ) ) {
+        return 'link';
     }
 
     return '';
 }
 
-add_shortcode('icone', 'icone_shortcode');
+function smpt_get_link_icon_type_from_anchor( $href, $attributes ) {
+    $candidates = array( trim( (string) $href ) );
+
+    if ( preg_match( '/\bdata-id\s*=\s*(["\'])(.*?)\1/is', $attributes, $matches ) ) {
+        $candidates[] = html_entity_decode( $matches[2], ENT_QUOTES, 'UTF-8' );
+    }
+
+    if ( preg_match( '/\bid\s*=\s*(["\'])(.*?)\1/is', $attributes, $matches ) ) {
+        $candidates[] = html_entity_decode( $matches[2], ENT_QUOTES, 'UTF-8' );
+    }
+
+    foreach ( $candidates as $candidate ) {
+        $icon_type = smpt_get_link_icon_type( $candidate );
+
+        if ( '' !== $icon_type ) {
+            return $icon_type;
+        }
+    }
+
+    return '';
+}
+
+function smpt_add_icons_to_content_links( $content ) {
+    if ( '' === trim( (string) $content ) || false === stripos( $content, '<a ' ) ) {
+        return $content;
+    }
+
+    $content = preg_replace_callback(
+        '/<a\b([^>]*)\bhref\s*=\s*(["\'])(.*?)\2([^>]*)>(.*?)<\/a>/is',
+        static function ( $matches ) {
+            $full_match = $matches[0];
+            $before_href = $matches[1];
+            $quote = $matches[2];
+            $href = html_entity_decode( $matches[3], ENT_QUOTES, 'UTF-8' );
+            $after_href = $matches[4];
+            $inner_html = $matches[5];
+            $attributes = $before_href . 'href=' . $quote . $matches[3] . $quote . $after_href;
+
+            if ( false !== stripos( $attributes, 'smpt-link-iconized' ) || false !== stripos( $inner_html, 'class="ico"' ) || false !== stripos( $inner_html, "class='ico'" ) ) {
+                return $full_match;
+            }
+
+            $icon_type = smpt_get_link_icon_type_from_anchor( $href, $attributes );
+
+            if ( '' === $icon_type ) {
+                return $full_match;
+            }
+
+            if ( preg_match( '/\bclass\s*=\s*(["\'])(.*?)\1/is', $attributes, $class_match ) ) {
+                $new_class = trim( $class_match[2] . ' smpt-link-iconized' );
+                $attributes = preg_replace(
+                    '/\bclass\s*=\s*(["\'])(.*?)\1/is',
+                    'class=' . $class_match[1] . esc_attr( $new_class ) . $class_match[1],
+                    $attributes,
+                    1
+                );
+            } else {
+                $attributes .= ' class="smpt-link-iconized"';
+            }
+
+            return '<a' . $attributes . '>' . smpt_get_link_icon_markup( $icon_type ) . ' ' . $inner_html . '</a>';
+        },
+        $content
+    );
+
+    // Preserve readable spacing when stored content placed a link directly after plain text.
+    $content = preg_replace(
+        '/(?<=[^\s>])(<a\b[^>]*\bclass\s*=\s*(["\'])[^"\']*smpt-link-iconized[^"\']*\2[^>]*>\s*<img\b)/i',
+        ' $1',
+        $content
+    );
+
+    return $content;
+}
+add_filter( 'the_content', 'smpt_add_icons_to_content_links', 20 );
 
 /*ICONES FIM*/
 
 /*INFOBOX INICIO*/
 
+function smpt_get_infobox_reusable_block_content( $slug ) {
+    static $cache = array();
+
+    $slug = sanitize_title( $slug );
+
+    if ( '' === $slug ) {
+        return '';
+    }
+
+    if ( isset( $cache[ $slug ] ) ) {
+        return $cache[ $slug ];
+    }
+
+    $block = get_page_by_path( $slug, OBJECT, 'wp_block' );
+
+    if ( ! $block instanceof WP_Post || 'publish' !== $block->post_status ) {
+        $cache[ $slug ] = '';
+        return '';
+    }
+
+    $cache[ $slug ] = do_shortcode( do_blocks( $block->post_content ) );
+
+    return $cache[ $slug ];
+}
+
+function smpt_get_infobox_slot_markup( $slot_class, $slug ) {
+    $slot_content = smpt_get_infobox_reusable_block_content( $slug );
+
+    if ( '' === trim( $slot_content ) ) {
+        return '';
+    }
+
+    return '<div class="' . esc_attr( $slot_class ) . '">' . $slot_content . '</div>';
+}
+
+function smpt_extract_infobox_inline_slot( $content, $tag ) {
+    $pattern = '/\[' . preg_quote( $tag, '/' ) . '\](.*?)\[\/' . preg_quote( $tag, '/' ) . '\]/is';
+    $slot    = '';
+
+    if ( preg_match( $pattern, (string) $content, $matches ) ) {
+        $slot    = do_shortcode( trim( $matches[1] ) );
+        $content = preg_replace( $pattern, '', (string) $content, 1 );
+    }
+
+    return array(
+        'slot'    => $slot,
+        'content' => (string) $content,
+    );
+}
+
+function smpt_passthrough_shortcode( $atts, $content = null ) {
+    return do_shortcode( (string) $content );
+}
+
 function infobox_shortcode($atts, $content = null) {
-    // Set up default attributes including the new 'estilo' and 'adicionar' attributes
     $atts = shortcode_atts(
         array(
-            'temporada' => '',
-            'estilo'    => '', 
-            'adicionar' => '',
-        ), 
+            'estilo'    => '',
+            'cabecalho' => '',
+            'conteudo'  => '',
+            'rodape'    => '',
+            'fechar'    => '',
+        ),
         $atts,
         'infobox'
     );
 
-    $temporada = esc_attr($atts['temporada']);
-    $estilo    = esc_attr($atts['estilo']);
-    $adicionar = esc_attr($atts['adicionar']);
+    $style_slug = sanitize_key( $atts['estilo'] );
+    $has_close  = 'sim' === strtolower( trim( (string) $atts['fechar'] ) );
+    $classes    = array( 'infobox', 'smpt-infobox' );
 
-    $temporada_content = '
-        <p><strong>Stream: </strong>Ficheiros de qualidade média com cerca de 50MB, disponibilizados em 2024</p>
-        <p><strong>Formato:</strong> MP4</p>
-        <p><strong>Audio:</strong> Opus, 48000 Hz, TV-Rip, VHS-RIP</p>
-        <p><strong>Vídeo:</strong> MP4 (codec AV1) 640×480, Bluray-Rip | <i>Modo compatibilidade:</i> MP4 (codec h264)</p>
-        <a class="destaque" href="https://sm-portugal.com/download-s' . esc_attr($temporada) . '">[icone tipo="link"] Esta série encontra-se disponível em alta qualidade 1080p aqui</a>';
-
-    $problema = '<div class="contentor" style="width: 85%; max-width: 470px; margin: 20px auto 10px auto;">
-        <div style="flex: 0 0 auto;" class="nao-telemovel"><img src="https://sm-portugal.com/wp-content/uploads/2024/06/probleminha.png" width="200" alt="" /></div>
-        <div style="flex: 1; margin-left: 10px; display: flex; flex-direction: column; justify-content: center;">
-            <h3 style="margin: 0;">Algum problema?</h3>
-            <p style="margin: 0;">Contacta-nos através do <a href="https://sm-portugal.com/livro-de-visitas/" data-type="page" data-id="2146"><strong>livro de visitas</strong></a></p>
-        </div>
-    </div>';
-
-    $content_to_use = !empty($temporada) ? $temporada_content : $content;
-    
-    // Removed sanitization
-    $sanitized_content = $content_to_use;
-
-    $fechar_btn_style = '';
-    $placeholder_style = '';
-    $adicionar_final = '';
-
-    $estilo_values = array_map('trim', explode(' ', $estilo));
-    if (in_array('bloqueada', $estilo_values)) {
-        $fechar_btn_style = 'style="display:none;"';
-    }
-    if (in_array('noplaceholder', $estilo_values)) {
-        $placeholder_style = 'style="display:none;"';
+    if ( '' !== $style_slug ) {
+        $classes[] = 'smpt-infobox--' . $style_slug;
     }
 
-    $adicionar_values = array_map('trim', explode(' ', $adicionar));
-    if (in_array('problema', $adicionar_values)) {
-        $adicionar_final = $problema;
+    if ( $has_close ) {
+        $classes[] = 'has-close';
     }
 
-    // Ensure $adicionar_final is empty if $adicionar is empty
-    if (empty($adicionar)) {
-        $adicionar_final = '';
+    $parsed_content = smpt_extract_infobox_inline_slot( (string) $content, 'cabecalho' );
+    $inline_header  = trim( $parsed_content['slot'] );
+
+    $parsed_content = smpt_extract_infobox_inline_slot( $parsed_content['content'], 'rodape' );
+    $inline_footer  = trim( $parsed_content['slot'] );
+    $inline_body    = $parsed_content['content'];
+
+    $header_markup = '';
+    if ( '' !== trim( (string) $atts['cabecalho'] ) ) {
+        $header_markup = smpt_get_infobox_slot_markup( 'smpt-infobox__header', $atts['cabecalho'] );
+    } elseif ( '' !== $inline_header ) {
+        $header_markup = '<div class="smpt-infobox__header">' . $inline_header . '</div>';
+    }
+
+    $footer_markup = '';
+    if ( '' !== trim( (string) $atts['rodape'] ) ) {
+        $footer_markup = smpt_get_infobox_slot_markup( 'smpt-infobox__footer', $atts['rodape'] );
+    } elseif ( '' !== $inline_footer ) {
+        $footer_markup = '<div class="smpt-infobox__footer">' . $inline_footer . '</div>';
+    }
+
+    if ( '' !== trim( (string) $atts['conteudo'] ) ) {
+        $body_content = smpt_get_infobox_reusable_block_content( $atts['conteudo'] );
+    } else {
+        $body_content = do_shortcode( (string) $inline_body );
+    }
+
+    if ( '' === trim( $body_content ) && '' === $header_markup && '' === $footer_markup ) {
+        return '';
+    }
+
+    $body_markup = '';
+    if ( '' !== trim( $body_content ) ) {
+        $body_markup = '<div class="smpt-infobox__body">' . $body_content . '</div>';
+    }
+
+    $close_button = '';
+    if ( $has_close ) {
+        $close_button = '<button type="button" class="smpt-infobox__close" data-smpt-infobox-close aria-label="' . esc_attr__( 'Fechar infobox', 'generatepress' ) . '">X</button>';
     }
 
     return '
-    <div class="infobox">
-        <div class="placeholder" ' . $placeholder_style . '></div>
-        <div class="fechar-btn" onclick="fecharInfoBox()" ' . $fechar_btn_style . '>X</div>
-        ' . do_shortcode($sanitized_content) . '
-        ' . $adicionar_final . '
-    </div>
-    <script>
-        function fecharInfoBox() {
-            var infoBox = document.querySelector(".infobox");
-            if (infoBox) {
-                infoBox.style.display = "none";
-            }
-        }
-    </script>';
+    <div class="' . esc_attr( implode( ' ', $classes ) ) . '">
+        ' . $close_button . '
+        <span class="smpt-infobox__corner smpt-infobox__corner--tl" aria-hidden="true"></span>
+        <span class="smpt-infobox__corner smpt-infobox__corner--tr" aria-hidden="true"></span>
+        <span class="smpt-infobox__corner smpt-infobox__corner--bl" aria-hidden="true"></span>
+        <span class="smpt-infobox__corner smpt-infobox__corner--br" aria-hidden="true"></span>
+        <div class="smpt-infobox__inner">
+            ' . $header_markup . '
+            ' . $body_markup . '
+            ' . $footer_markup . '
+        </div>
+    </div>';
 }
 
 add_shortcode('infobox', 'infobox_shortcode');
+add_shortcode('cabecalho', 'smpt_passthrough_shortcode');
+add_shortcode('rodape', 'smpt_passthrough_shortcode');
 
 /*INFOBOX FIM*/
-
-
-/** Video Banner */
-function custom_video_banner_shortcode() {
-    // Get the user agent
-    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
-
-    // Check if the user agent indicates a mobile device using the correct variable name
-    $isMobile = preg_match("/(android|iphone|ipod|opera mini|iemobile|mobile)/i", $user_agent);
-
-    ob_start();
-
-    if ($isMobile) {
-        // Output for mobile devices
-        echo '<div class="wp-block-image">
-                <picture class="aligncenter size-full">
-                    <source srcset="https://sm-portugal.com/wp-content/uploads/2024/08/logosailormoonwebp.webp" type="image/webp">
-                    <img decoding="async" width="600" height="216" src="https://sm-portugal.com/wp-content/uploads/2023/12/belaguardia.png" alt="" class="Logo Navegante da Lua">
-                </picture>
-              </div>';
-    } else {
-        // Output for non-mobile devices
-        echo '<div id="intro" class="wp-block-post-featured-image">
-                <video autoplay muted loop>
-                    <source src="https://sm-portugal.com/wp-content/uploads/2024/08/IntroAV1.mp4" type="video/mp4; codecs=av01.0.04M.08">
-                    <source src="https://sm-portugal.com/wp-content/uploads/2023/11/intro.mp4" type="video/mp4">
-                </video>
-                <div class="wp-block-image" style="z-index: 3; position: relative;">
-                    <picture class="aligncenter size-full">
-                        <source srcset="https://sm-portugal.com/wp-content/uploads/2024/08/logosailormoonwebp.webp" type="image/webp">
-                        <img decoding="async" width="600" height="216" src="https://sm-portugal.com/wp-content/uploads/2023/12/belaguardia.png" alt="" class="Logo Navegante da Lua">
-                    </picture>
-                </div>
-              </div>';
-    }
-
-    return ob_get_clean();
-
-}
-
-// Register the shortcode
-add_shortcode('videobanner', 'custom_video_banner_shortcode');
-
-
-
-
 
 
 //BACKUP//

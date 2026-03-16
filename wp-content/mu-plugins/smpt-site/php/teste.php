@@ -30,7 +30,7 @@ function gerar_episodios_old($inicio, $fim) {
         $video_src = "https://sm-portugal.com/streaming/" . $i . ".mp4";
 
         // Output HTML structure
-        echo '<div id="episodio_' . $num . '" class="contentor_episodio">
+        echo '<div id="episodio_' . $num . '" class="contentor_episodio smpt-table smpt-table--episode">
            <div class="cabecalho_video">
               <h2>Episódio ' . $i . '</h2>
            </div>

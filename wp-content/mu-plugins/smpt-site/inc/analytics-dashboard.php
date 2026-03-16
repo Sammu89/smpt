@@ -37,102 +37,117 @@ add_action( 'wp_dashboard_setup', 'smpt_analytics_register_dashboard_widget' );
 function smpt_analytics_dashboard_widget_render() {
 	?>
 	<div id="smpt-analytics-root">
-		<!-- Period selector -->
-		<div class="smpt-period-bar">
-			<button class="smpt-period-btn" data-period="today">Today</button>
-			<button class="smpt-period-btn" data-period="week">This Week</button>
-			<button class="smpt-period-btn smpt-period-active" data-period="month">This Month</button>
-			<button class="smpt-period-btn" data-period="year">This Year</button>
-			<button class="smpt-period-btn" data-period="all">All Time</button>
+		<div class="smpt-toolbar">
+			<button type="button" class="smpt-toggle-btn" id="smpt-toggle-stats">Show stats</button>
+			<p class="smpt-toolbar-note">Analytics stays unloaded until you open it.</p>
 		</div>
 
-		<!-- Loading indicator -->
-		<div id="smpt-loading" class="smpt-loading">Loading analytics&hellip;</div>
+		<div id="smpt-analytics-panel" class="smpt-hidden">
+			<!-- Period selector -->
+			<div class="smpt-period-bar">
+				<button class="smpt-period-btn" data-period="today">Today</button>
+				<button class="smpt-period-btn" data-period="week">This Week</button>
+				<button class="smpt-period-btn smpt-period-active" data-period="month">This Month</button>
+				<button class="smpt-period-btn" data-period="year">This Year</button>
+				<button class="smpt-period-btn" data-period="all">All Time</button>
+			</div>
 
-		<!-- KPI cards -->
-		<div class="smpt-kpi-grid" id="smpt-kpis"></div>
+			<!-- Loading indicator -->
+			<div id="smpt-loading" class="smpt-loading smpt-hidden">Loading analytics&hellip;</div>
 
-		<!-- Events over time -->
-		<div class="smpt-chart-section">
-			<h3>Events Over Time</h3>
-			<div class="smpt-chart-wrap"><canvas id="smpt-chart-timeline"></canvas></div>
-		</div>
+			<!-- KPI cards -->
+			<div class="smpt-kpi-grid" id="smpt-kpis"></div>
 
-		<!-- Top content: episodes + music side by side -->
-		<div class="smpt-two-col">
-			<div class="smpt-chart-section">
-				<h3>Top Streamed Episodes</h3>
-				<div class="smpt-chart-wrap smpt-chart-bar"><canvas id="smpt-chart-top-streams"></canvas></div>
+			<div class="smpt-chart-section smpt-detail-section" id="smpt-detail-section">
+				<div class="smpt-detail-head">
+					<h3 id="smpt-detail-title">Streams</h3>
+					<p class="smpt-detail-summary" id="smpt-detail-summary"></p>
+				</div>
+				<div class="smpt-detail-grid" id="smpt-detail-grid"></div>
 			</div>
-			<div class="smpt-chart-section">
-				<h3>Top Downloaded Episodes</h3>
-				<div class="smpt-chart-wrap smpt-chart-bar"><canvas id="smpt-chart-top-downloads"></canvas></div>
-			</div>
-		</div>
 
-		<div class="smpt-two-col">
+			<!-- Events over time -->
 			<div class="smpt-chart-section">
-				<h3>Top Music</h3>
-				<div class="smpt-chart-wrap smpt-chart-bar"><canvas id="smpt-chart-top-music"></canvas></div>
+				<h3>Events Over Time</h3>
+				<div class="smpt-chart-wrap"><canvas id="smpt-chart-timeline"></canvas></div>
 			</div>
-			<div class="smpt-chart-section">
-				<h3>Watch Completion</h3>
-				<div class="smpt-chart-wrap"><canvas id="smpt-chart-funnel"></canvas></div>
-			</div>
-		</div>
 
-		<!-- Demographics: 2x2 grid -->
-		<h3>Visitor Demographics</h3>
-		<div class="smpt-demo-grid">
-			<div class="smpt-chart-section">
-				<h4>Country</h4>
-				<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-country"></canvas></div>
+			<!-- Top content: episodes + music side by side -->
+			<div class="smpt-two-col">
+				<div class="smpt-chart-section">
+					<h3>Top Streamed Episodes</h3>
+					<div class="smpt-chart-wrap smpt-chart-bar"><canvas id="smpt-chart-top-streams"></canvas></div>
+				</div>
+				<div class="smpt-chart-section">
+					<h3>Top Downloaded Episodes</h3>
+					<div class="smpt-chart-wrap smpt-chart-bar"><canvas id="smpt-chart-top-downloads"></canvas></div>
+				</div>
 			</div>
-			<div class="smpt-chart-section">
-				<h4>Device</h4>
-				<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-device"></canvas></div>
-			</div>
-			<div class="smpt-chart-section">
-				<h4>OS</h4>
-				<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-os"></canvas></div>
-			</div>
-			<div class="smpt-chart-section">
-				<h4>Browser</h4>
-				<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-browser"></canvas></div>
-			</div>
-		</div>
 
-		<!-- Additional insights -->
-		<div class="smpt-two-col">
-			<div class="smpt-chart-section">
-				<h3>Peak Hours</h3>
-				<div class="smpt-chart-wrap"><canvas id="smpt-chart-hours"></canvas></div>
+			<div class="smpt-two-col">
+				<div class="smpt-chart-section">
+					<h3>Top Music</h3>
+					<div class="smpt-chart-wrap smpt-chart-bar"><canvas id="smpt-chart-top-music"></canvas></div>
+				</div>
+				<div class="smpt-chart-section">
+					<h3>Watch Completion</h3>
+					<div class="smpt-chart-wrap"><canvas id="smpt-chart-funnel"></canvas></div>
+				</div>
 			</div>
-			<div class="smpt-chart-section">
-				<h3>New vs Returning</h3>
-				<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-newret"></canvas></div>
-			</div>
-		</div>
 
-		<div class="smpt-two-col">
-			<div class="smpt-chart-section">
-				<h3>Top Referrers</h3>
-				<table class="smpt-table" id="smpt-table-referrers"><tbody></tbody></table>
+			<!-- Demographics: 2x2 grid -->
+			<h3>Visitor Demographics</h3>
+			<div class="smpt-demo-grid">
+				<div class="smpt-chart-section">
+					<h4>Country</h4>
+					<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-country"></canvas></div>
+				</div>
+				<div class="smpt-chart-section">
+					<h4>Device</h4>
+					<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-device"></canvas></div>
+				</div>
+				<div class="smpt-chart-section">
+					<h4>OS</h4>
+					<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-os"></canvas></div>
+				</div>
+				<div class="smpt-chart-section">
+					<h4>Browser</h4>
+					<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-browser"></canvas></div>
+				</div>
 			</div>
-			<div class="smpt-chart-section">
-				<h3>Screen Resolutions</h3>
-				<table class="smpt-table" id="smpt-table-resolutions"><tbody></tbody></table>
-			</div>
-		</div>
 
-		<div class="smpt-two-col">
-			<div class="smpt-chart-section">
-				<h3>Languages</h3>
-				<table class="smpt-table" id="smpt-table-languages"><tbody></tbody></table>
+			<!-- Additional insights -->
+			<div class="smpt-two-col">
+				<div class="smpt-chart-section">
+					<h3>Peak Hours</h3>
+					<div class="smpt-chart-wrap"><canvas id="smpt-chart-hours"></canvas></div>
+				</div>
+				<div class="smpt-chart-section">
+					<h3>New vs Returning</h3>
+					<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-newret"></canvas></div>
+				</div>
 			</div>
-			<div class="smpt-chart-section">
-				<h3>Connection Types</h3>
-				<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-connection"></canvas></div>
+
+			<div class="smpt-two-col">
+				<div class="smpt-chart-section">
+					<h3>Top Referrers</h3>
+					<table class="smpt-table" id="smpt-table-referrers"><tbody></tbody></table>
+				</div>
+				<div class="smpt-chart-section">
+					<h3>Screen Resolutions</h3>
+					<table class="smpt-table" id="smpt-table-resolutions"><tbody></tbody></table>
+				</div>
+			</div>
+
+			<div class="smpt-two-col">
+				<div class="smpt-chart-section">
+					<h3>Languages</h3>
+					<table class="smpt-table" id="smpt-table-languages"><tbody></tbody></table>
+				</div>
+				<div class="smpt-chart-section">
+					<h3>Connection Types</h3>
+					<div class="smpt-chart-wrap smpt-chart-sm"><canvas id="smpt-chart-connection"></canvas></div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -240,6 +255,203 @@ function smpt_analytics_period_range( $period ) {
 }
 
 /**
+ * Merge grouped totals into an event_type => count map.
+ *
+ * @param array $totals Existing totals.
+ * @param array $rows   Query rows containing event_type and cnt properties.
+ * @return array
+ */
+function smpt_analytics_merge_event_totals( array $totals, array $rows ) {
+	foreach ( $rows as $row ) {
+		$type = isset( $row->event_type ) ? (string) $row->event_type : '';
+
+		if ( '' === $type ) {
+			continue;
+		}
+
+		$totals[ $type ] = ( $totals[ $type ] ?? 0 ) + (int) $row->cnt;
+	}
+
+	return $totals;
+}
+
+/**
+ * Merge timeline rows into a normalized chart payload.
+ *
+ * @param array $local_rows Local analytics rows.
+ * @param array $ga_rows    Imported GA rows.
+ * @return array
+ */
+function smpt_analytics_merge_timeline_rows( array $local_rows, array $ga_rows ) {
+	$merged = array();
+
+	foreach ( array_merge( $local_rows, $ga_rows ) as $row ) {
+		$label = isset( $row->period_label ) ? (string) $row->period_label : '';
+		$type  = isset( $row->event_type ) ? (string) $row->event_type : '';
+
+		if ( '' === $label || '' === $type ) {
+			continue;
+		}
+
+		$key = $label . '|' . $type;
+		if ( ! isset( $merged[ $key ] ) ) {
+			$merged[ $key ] = array(
+				'label' => $label,
+				'type'  => $type,
+				'count' => 0,
+			);
+		}
+
+		$merged[ $key ]['count'] += (int) $row->cnt;
+	}
+
+	usort(
+		$merged,
+		static function ( $left, $right ) {
+			if ( $left['label'] === $right['label'] ) {
+				return strcmp( $left['type'], $right['type'] );
+			}
+
+			return strcmp( $left['label'], $right['label'] );
+		}
+	);
+
+	return array_values( $merged );
+}
+
+/**
+ * Merge item-count leaderboards from multiple sources.
+ *
+ * @param int   $limit Number of rows to return.
+ * @param array ...$row_sets Query result sets with item_id and cnt properties.
+ * @return array
+ */
+function smpt_analytics_merge_item_rankings( $limit, ...$row_sets ) {
+	$counts = array();
+
+	foreach ( $row_sets as $rows ) {
+		foreach ( $rows as $row ) {
+			$item_id = isset( $row->item_id ) ? trim( (string) $row->item_id ) : '';
+
+			if ( '' === $item_id ) {
+				continue;
+			}
+
+			$counts[ $item_id ] = ( $counts[ $item_id ] ?? 0 ) + (int) $row->cnt;
+		}
+	}
+
+	arsort( $counts, SORT_NUMERIC );
+	$counts = array_slice( $counts, 0, (int) $limit, true );
+
+	$results = array();
+	foreach ( $counts as $label => $count ) {
+		$results[] = array(
+			'label' => $label,
+			'count' => (int) $count,
+		);
+	}
+
+	return $results;
+}
+
+/**
+ * Merge item-count leaderboards and sort either descending or ascending.
+ *
+ * @param int   $limit     Number of rows to return.
+ * @param bool  $ascending Whether to sort ascending.
+ * @param array ...$row_sets Query result sets with item_id and cnt properties.
+ * @return array
+ */
+function smpt_analytics_merge_item_rankings_sorted( $limit, $ascending, ...$row_sets ) {
+	$counts = array();
+
+	foreach ( $row_sets as $rows ) {
+		foreach ( $rows as $row ) {
+			$item_id = isset( $row->item_id ) ? trim( (string) $row->item_id ) : '';
+
+			if ( '' === $item_id ) {
+				continue;
+			}
+
+			$counts[ $item_id ] = ( $counts[ $item_id ] ?? 0 ) + (int) $row->cnt;
+		}
+	}
+
+	if ( $ascending ) {
+		asort( $counts, SORT_NUMERIC );
+	} else {
+		arsort( $counts, SORT_NUMERIC );
+	}
+
+	$counts  = array_slice( $counts, 0, (int) $limit, true );
+	$results = array();
+
+	foreach ( $counts as $label => $count ) {
+		$results[] = array(
+			'label' => $label,
+			'count' => (int) $count,
+		);
+	}
+
+	return $results;
+}
+
+/**
+ * Merge grouped date counts and return ranked periods.
+ *
+ * @param int   $limit     Number of rows to return.
+ * @param bool  $ascending Whether to sort ascending.
+ * @param array ...$row_sets Query rows containing period_label and cnt properties.
+ * @return array
+ */
+function smpt_analytics_merge_period_rankings( $limit, $ascending, ...$row_sets ) {
+	$counts = array();
+
+	foreach ( $row_sets as $rows ) {
+		foreach ( $rows as $row ) {
+			$label = isset( $row->period_label ) ? trim( (string) $row->period_label ) : '';
+
+			if ( '' === $label ) {
+				continue;
+			}
+
+			$counts[ $label ] = ( $counts[ $label ] ?? 0 ) + (int) $row->cnt;
+		}
+	}
+
+	if ( $ascending ) {
+		asort( $counts, SORT_NUMERIC );
+	} else {
+		arsort( $counts, SORT_NUMERIC );
+	}
+
+	$counts  = array_slice( $counts, 0, (int) $limit, true );
+	$results = array();
+
+	foreach ( $counts as $label => $count ) {
+		$results[] = array(
+			'label' => $label,
+			'count' => (int) $count,
+		);
+	}
+
+	return $results;
+}
+
+/**
+ * Prepare a SQL statement using an argument array.
+ *
+ * @param wpdb  $wpdb   WordPress DB handle.
+ * @param string $sql   SQL with placeholders.
+ * @param array  $args  Placeholder arguments.
+ * @return string
+ */
+function smpt_analytics_prepare_sql( $wpdb, $sql, array $args ) {
+	return call_user_func_array( array( $wpdb, 'prepare' ), array_merge( array( $sql ), $args ) );
+}
+
+/**
  * Handle GET /smpt/v1/stats — return all dashboard data for a period.
  *
  * @param WP_REST_Request $request REST request.
@@ -255,7 +467,9 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 	$gf     = $range['group_format'];
 	$ev     = $wpdb->prefix . 'smpt_events';
 	$vi     = $wpdb->prefix . 'smpt_visitors';
-	$co     = $wpdb->prefix . 'smpt_counters';
+	$ga     = $wpdb->prefix . 'smpt_ga4_history';
+	$ga_start = gmdate( 'Y-m-d', strtotime( $start ) );
+	$ga_end   = gmdate( 'Y-m-d', strtotime( $end ) );
 
 	// --- KPIs ---
 	$visitors = (int) $wpdb->get_var( $wpdb->prepare(
@@ -272,6 +486,60 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		$event_totals[ $row->event_type ] = (int) $row->cnt;
 	}
 
+	$ga_event_totals_raw = $wpdb->get_results( $wpdb->prepare(
+		"SELECT event_type, SUM(event_count) as cnt FROM {$ga}
+		 WHERE event_date BETWEEN %s AND %s GROUP BY event_type",
+		$ga_start, $ga_end
+	) );
+	$event_totals = smpt_analytics_merge_event_totals( $event_totals, $ga_event_totals_raw );
+	$manga_total  = ( $event_totals['manga_view'] ?? 0 ) + ( $event_totals['manga_download'] ?? 0 );
+
+	$build_event_type_placeholders = static function ( array $event_types ) {
+		return implode( ', ', array_fill( 0, count( $event_types ), '%s' ) );
+	};
+
+	$get_local_item_rows = static function ( array $event_types ) use ( $wpdb, $ev, $start, $end, $build_event_type_placeholders ) {
+		$placeholders = $build_event_type_placeholders( $event_types );
+		$sql          = "SELECT item_id, COUNT(*) as cnt FROM {$ev}
+			WHERE created_at BETWEEN %s AND %s
+			AND event_type IN ({$placeholders})
+			AND item_id != ''
+			GROUP BY item_id";
+		$args         = array_merge( array( $start, $end ), $event_types );
+		return $wpdb->get_results( smpt_analytics_prepare_sql( $wpdb, $sql, $args ) );
+	};
+
+	$get_ga_item_rows = static function ( array $event_types ) use ( $wpdb, $ga, $ga_start, $ga_end, $build_event_type_placeholders ) {
+		$placeholders = $build_event_type_placeholders( $event_types );
+		$sql          = "SELECT item_id, SUM(event_count) as cnt FROM {$ga}
+			WHERE event_date BETWEEN %s AND %s
+			AND event_type IN ({$placeholders})
+			AND item_id != ''
+			GROUP BY item_id";
+		$args         = array_merge( array( $ga_start, $ga_end ), $event_types );
+		return $wpdb->get_results( smpt_analytics_prepare_sql( $wpdb, $sql, $args ) );
+	};
+
+	$get_local_period_rows = static function ( array $event_types ) use ( $wpdb, $ev, $start, $end, $build_event_type_placeholders ) {
+		$placeholders = $build_event_type_placeholders( $event_types );
+		$sql          = "SELECT DATE(created_at) as period_label, COUNT(*) as cnt FROM {$ev}
+			WHERE created_at BETWEEN %s AND %s
+			AND event_type IN ({$placeholders})
+			GROUP BY DATE(created_at)";
+		$args         = array_merge( array( $start, $end ), $event_types );
+		return $wpdb->get_results( smpt_analytics_prepare_sql( $wpdb, $sql, $args ) );
+	};
+
+	$get_ga_period_rows = static function ( array $event_types ) use ( $wpdb, $ga, $ga_start, $ga_end, $build_event_type_placeholders ) {
+		$placeholders = $build_event_type_placeholders( $event_types );
+		$sql          = "SELECT event_date as period_label, SUM(event_count) as cnt FROM {$ga}
+			WHERE event_date BETWEEN %s AND %s
+			AND event_type IN ({$placeholders})
+			GROUP BY event_date";
+		$args         = array_merge( array( $ga_start, $ga_end ), $event_types );
+		return $wpdb->get_results( smpt_analytics_prepare_sql( $wpdb, $sql, $args ) );
+	};
+
 	// --- Events over time ---
 	$timeline_raw = $wpdb->get_results( $wpdb->prepare(
 		"SELECT DATE_FORMAT(created_at, %s) as period_label, event_type, COUNT(*) as cnt
@@ -279,14 +547,16 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		 GROUP BY period_label, event_type ORDER BY period_label",
 		$gf, $start, $end
 	) );
-	$timeline = array();
-	foreach ( $timeline_raw as $row ) {
-		$timeline[] = array(
-			'label' => $row->period_label,
-			'type'  => $row->event_type,
-			'count' => (int) $row->cnt,
-		);
+	$ga_timeline_raw = array();
+	if ( 'today' !== $period ) {
+		$ga_timeline_raw = $wpdb->get_results( $wpdb->prepare(
+			"SELECT DATE_FORMAT(event_date, %s) as period_label, event_type, SUM(event_count) as cnt
+			 FROM {$ga} WHERE event_date BETWEEN %s AND %s
+			 GROUP BY period_label, event_type ORDER BY period_label",
+			$gf, $ga_start, $ga_end
+		) );
 	}
+	$timeline = smpt_analytics_merge_timeline_rows( $timeline_raw, $ga_timeline_raw );
 
 	// --- Top episodes (streams) ---
 	$top_streams = $wpdb->get_results( $wpdb->prepare(
@@ -294,6 +564,12 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		 WHERE event_type = 'stream' AND created_at BETWEEN %s AND %s
 		 GROUP BY item_id ORDER BY cnt DESC LIMIT 10",
 		$start, $end
+	) );
+	$ga_top_streams = $wpdb->get_results( $wpdb->prepare(
+		"SELECT item_id, SUM(event_count) as cnt FROM {$ga}
+		 WHERE event_type = 'stream' AND event_date BETWEEN %s AND %s
+		 GROUP BY item_id ORDER BY cnt DESC LIMIT 25",
+		$ga_start, $ga_end
 	) );
 
 	// --- Top episodes (downloads) ---
@@ -303,6 +579,12 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		 GROUP BY item_id ORDER BY cnt DESC LIMIT 10",
 		$start, $end
 	) );
+	$ga_top_downloads = $wpdb->get_results( $wpdb->prepare(
+		"SELECT item_id, SUM(event_count) as cnt FROM {$ga}
+		 WHERE event_type = 'download' AND event_date BETWEEN %s AND %s
+		 GROUP BY item_id ORDER BY cnt DESC LIMIT 25",
+		$ga_start, $ga_end
+	) );
 
 	// --- Top music ---
 	$top_music = $wpdb->get_results( $wpdb->prepare(
@@ -310,6 +592,12 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		 WHERE event_type = 'music_stream' AND created_at BETWEEN %s AND %s
 		 GROUP BY item_id ORDER BY cnt DESC LIMIT 10",
 		$start, $end
+	) );
+	$ga_top_music = $wpdb->get_results( $wpdb->prepare(
+		"SELECT item_id, SUM(event_count) as cnt FROM {$ga}
+		 WHERE event_type = 'music_stream' AND event_date BETWEEN %s AND %s
+		 GROUP BY item_id ORDER BY cnt DESC LIMIT 25",
+		$ga_start, $ga_end
 	) );
 
 	// --- Watch completion funnel ---
@@ -415,7 +703,6 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 	) );
 	$returning_visitors = max( 0, $visitors - $new_visitors );
 
-	// --- Format response ---
 	$format_list = static function ( $rows ) {
 		$out = array();
 		foreach ( $rows as $row ) {
@@ -424,6 +711,116 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		return $out;
 	};
 
+	$visitor_days = $wpdb->get_results( $wpdb->prepare(
+		"SELECT DATE(created_at) as period_label, COUNT(DISTINCT visitor_id) as cnt
+		 FROM {$ev} WHERE created_at BETWEEN %s AND %s
+		 GROUP BY DATE(created_at)",
+		$start, $end
+	) );
+
+	$metric_details = array(
+		'visitors'  => array(
+			'title'   => 'Visitors',
+			'summary' => sprintf( '%s unique visitors in this period.', number_format_i18n( $visitors ) ),
+			'cards'   => array(
+				array(
+					'title' => 'Top Countries',
+					'items' => $format_list( array_slice( $countries, 0, 5 ) ),
+				),
+				array(
+					'title' => 'Top Devices',
+					'items' => $format_list( array_slice( $devices, 0, 5 ) ),
+				),
+				array(
+					'title' => 'Peak Visitor Days',
+					'items' => smpt_analytics_merge_period_rankings( 5, false, $visitor_days ),
+				),
+				array(
+					'title' => 'Quiet Visitor Days',
+					'items' => smpt_analytics_merge_period_rankings( 5, true, $visitor_days ),
+				),
+			),
+		),
+	);
+
+	$detail_metric_map = array(
+		'streams'   => array(
+			'title'       => 'Streams',
+			'summary'     => sprintf( '%s total streams in this period.', number_format_i18n( $event_totals['stream'] ?? 0 ) ),
+			'event_types' => array( 'stream' ),
+			'top_label'   => 'Top Streamed Items',
+			'low_label'   => 'Least Streamed Items',
+			'peak_label'  => 'Highest Stream Days',
+			'quiet_label' => 'Lowest Stream Days',
+		),
+		'downloads' => array(
+			'title'       => 'Downloads',
+			'summary'     => sprintf( '%s total downloads in this period.', number_format_i18n( $event_totals['download'] ?? 0 ) ),
+			'event_types' => array( 'download' ),
+			'top_label'   => 'Top Downloaded Items',
+			'low_label'   => 'Least Downloaded Items',
+			'peak_label'  => 'Highest Download Days',
+			'quiet_label' => 'Lowest Download Days',
+		),
+		'music'     => array(
+			'title'       => 'Music',
+			'summary'     => sprintf( '%s music streams in this period.', number_format_i18n( $event_totals['music_stream'] ?? 0 ) ),
+			'event_types' => array( 'music_stream' ),
+			'top_label'   => 'Top Music Tracks',
+			'low_label'   => 'Least Streamed Tracks',
+			'peak_label'  => 'Highest Music Days',
+			'quiet_label' => 'Lowest Music Days',
+		),
+		'manga'     => array(
+			'title'       => 'Manga',
+			'summary'     => sprintf( '%s total manga interactions in this period.', number_format_i18n( $manga_total ) ),
+			'event_types' => array( 'manga_view', 'manga_download' ),
+			'top_label'   => 'Top Manga Items',
+			'low_label'   => 'Least Active Manga Items',
+			'peak_label'  => 'Highest Manga Days',
+			'quiet_label' => 'Lowest Manga Days',
+		),
+		'nostalgia' => array(
+			'title'       => 'Nostalgia',
+			'summary'     => sprintf( '%s nostalgia plays in this period.', number_format_i18n( $event_totals['nostalgia_play'] ?? 0 ) ),
+			'event_types' => array( 'nostalgia_play' ),
+			'top_label'   => 'Top Nostalgia Items',
+			'low_label'   => 'Least Played Nostalgia Items',
+			'peak_label'  => 'Highest Nostalgia Days',
+			'quiet_label' => 'Lowest Nostalgia Days',
+		),
+	);
+
+	foreach ( $detail_metric_map as $metric_key => $detail_config ) {
+		$local_items   = $get_local_item_rows( $detail_config['event_types'] );
+		$ga_items      = $get_ga_item_rows( $detail_config['event_types'] );
+		$local_periods = $get_local_period_rows( $detail_config['event_types'] );
+		$ga_periods    = $get_ga_period_rows( $detail_config['event_types'] );
+
+		$metric_details[ $metric_key ] = array(
+			'title'   => $detail_config['title'],
+			'summary' => $detail_config['summary'],
+			'cards'   => array(
+				array(
+					'title' => $detail_config['top_label'],
+					'items' => smpt_analytics_merge_item_rankings_sorted( 5, false, $local_items, $ga_items ),
+				),
+				array(
+					'title' => $detail_config['low_label'],
+					'items' => smpt_analytics_merge_item_rankings_sorted( 5, true, $local_items, $ga_items ),
+				),
+				array(
+					'title' => $detail_config['peak_label'],
+					'items' => smpt_analytics_merge_period_rankings( 5, false, $local_periods, $ga_periods ),
+				),
+				array(
+					'title' => $detail_config['quiet_label'],
+					'items' => smpt_analytics_merge_period_rankings( 5, true, $local_periods, $ga_periods ),
+				),
+			),
+		);
+	}
+
 	return new WP_REST_Response( array(
 		'period'      => $period,
 		'kpis'        => array(
@@ -431,14 +828,19 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 			'streams'        => $event_totals['stream'] ?? 0,
 			'downloads'      => $event_totals['download'] ?? 0,
 			'music_streams'  => $event_totals['music_stream'] ?? 0,
+			'manga'          => $manga_total,
 			'manga_views'    => $event_totals['manga_view'] ?? 0,
 			'manga_downloads'=> $event_totals['manga_download'] ?? 0,
 			'nostalgia'      => $event_totals['nostalgia_play'] ?? 0,
 		),
+		'details'      => array(
+			'default_metric' => 'streams',
+			'metrics'        => $metric_details,
+		),
 		'timeline'     => $timeline,
-		'top_streams'  => $format_list( $top_streams ),
-		'top_downloads'=> $format_list( $top_downloads ),
-		'top_music'    => $format_list( $top_music ),
+		'top_streams'  => smpt_analytics_merge_item_rankings( 10, $top_streams, $ga_top_streams ),
+		'top_downloads'=> smpt_analytics_merge_item_rankings( 10, $top_downloads, $ga_top_downloads ),
+		'top_music'    => smpt_analytics_merge_item_rankings( 10, $top_music, $ga_top_music ),
 		'funnel'       => $funnel,
 		'countries'    => $format_list( $countries ),
 		'devices'      => $format_list( $devices ),

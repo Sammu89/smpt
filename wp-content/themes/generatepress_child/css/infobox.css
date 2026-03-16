@@ -1,86 +1,197 @@
-/* Estilos gerais para a área de posts relacionados e infobox e related posts box */
-#jp-relatedposts, #related-posts, .infobox {
-  background: url(https://sm-portugal.com/wp-content/uploads/2023/12/newstopleft.gif) top left no-repeat,
-              url(https://sm-portugal.com/wp-content/uploads/2023/12/newstopright.gif) top right no-repeat,
-              url(https://sm-portugal.com/wp-content/uploads/2023/12/newstopcenter.gif) top center repeat-x,
-              url(https://sm-portugal.com/wp-content/uploads/2023/12/newsbottomleft.gif) bottom left no-repeat,
-              url(https://sm-portugal.com/wp-content/uploads/2023/12/newsbottomright.gif) bottom right no-repeat,
-              url(https://sm-portugal.com/wp-content/uploads/2023/12/newsbottomcenter.gif) bottom center repeat-x,
-              url(https://sm-portugal.com/wp-content/uploads/2023/12/newsleft.gif) center left repeat-y,
-              url(https://sm-portugal.com/wp-content/uploads/2023/12/newsright.gif) center right repeat-y;
-  background-size: auto;
+/* Infobox component */
+.smpt-infobox {
+  --smpt-infobox-background-resolved: var(--smpt-infobox-default-background, var(--base-3));
+  --smpt-infobox-border-color-resolved: var(--smpt-infobox-default-border-color, var(--base));
+  --smpt-infobox-border-width-resolved: var(--smpt-infobox-default-border-width, 2px);
+  --smpt-infobox-padding-top-resolved: var(--smpt-infobox-default-padding-top, 40px);
+  --smpt-infobox-padding-right-resolved: var(--smpt-infobox-default-padding-right, 32px);
+  --smpt-infobox-padding-bottom-resolved: var(--smpt-infobox-default-padding-bottom, 32px);
+  --smpt-infobox-padding-left-resolved: var(--smpt-infobox-default-padding-left, 32px);
+  --smpt-infobox-max-width-resolved: var(--smpt-infobox-default-max-width, 720px);
+  --smpt-infobox-min-height-resolved: var(--smpt-infobox-default-min-height, 0px);
+  --smpt-infobox-body-text-resolved: var(--smpt-infobox-default-body-text, var(--contrast));
+  --smpt-infobox-header-text-resolved: var(--smpt-infobox-default-header-text, var(--contrast));
+  --smpt-infobox-footer-text-resolved: var(--smpt-infobox-default-footer-text, var(--contrast-2));
+  --smpt-infobox-divider-resolved: var(--smpt-infobox-default-divider, var(--base));
+  --smpt-infobox-close-text-resolved: var(--smpt-infobox-default-close-text, var(--contrast));
+  --smpt-infobox-close-background-resolved: var(--smpt-infobox-default-close-background, var(--base-2));
+  --smpt-infobox-close-border-resolved: var(--smpt-infobox-default-close-border, var(--base));
+  --smpt-infobox-close-size-resolved: var(--smpt-infobox-default-close-size, 36px);
+  --smpt-infobox-corner-size-resolved: var(--smpt-infobox-default-corner-size, 56px);
+  --smpt-infobox-corner-offset-x-resolved: var(--smpt-infobox-default-corner-offset-x, 14px);
+  --smpt-infobox-corner-offset-y-resolved: var(--smpt-infobox-default-corner-offset-y, 14px);
+  --smpt-infobox-corner-tl-image-resolved: var(--smpt-infobox-default-corner-tl-image, none);
+  --smpt-infobox-corner-tr-image-resolved: var(--smpt-infobox-default-corner-tr-image, none);
+  --smpt-infobox-corner-bl-image-resolved: var(--smpt-infobox-default-corner-bl-image, none);
+  --smpt-infobox-corner-br-image-resolved: var(--smpt-infobox-default-corner-br-image, none);
+  background: var(--smpt-infobox-background-resolved);
+  border: var(--smpt-infobox-border-width-resolved) solid var(--smpt-infobox-border-color-resolved);
+  color: var(--smpt-infobox-body-text-resolved);
   margin: 0 auto 30px;
-  max-width: 670px;
-  min-height: 220px;
-  padding: 75px 30px 30px 50px!important;
+  max-width: var(--smpt-infobox-max-width-resolved);
+  min-height: var(--smpt-infobox-min-height-resolved);
   position: relative;
-  text-align: center;
-  border: none;
 }
 
-/* Estilos para o espaço reservado dentro da infobox */
-.infobox .placeholder {
-  float: left;
-  height: 50px;
-  left: -15px;
-  position: relative;
-  top: -15px;
-  width: 150px;
+.smpt-infobox--temporada {
+  --smpt-infobox-background-resolved: var(--smpt-infobox-temporada-background, var(--smpt-infobox-background-resolved));
+  --smpt-infobox-border-color-resolved: var(--smpt-infobox-temporada-border-color, var(--smpt-infobox-border-color-resolved));
+  --smpt-infobox-border-width-resolved: var(--smpt-infobox-temporada-border-width, var(--smpt-infobox-border-width-resolved));
+  --smpt-infobox-padding-top-resolved: var(--smpt-infobox-temporada-padding-top, var(--smpt-infobox-padding-top-resolved));
+  --smpt-infobox-padding-right-resolved: var(--smpt-infobox-temporada-padding-right, var(--smpt-infobox-padding-right-resolved));
+  --smpt-infobox-padding-bottom-resolved: var(--smpt-infobox-temporada-padding-bottom, var(--smpt-infobox-padding-bottom-resolved));
+  --smpt-infobox-padding-left-resolved: var(--smpt-infobox-temporada-padding-left, var(--smpt-infobox-padding-left-resolved));
+  --smpt-infobox-max-width-resolved: var(--smpt-infobox-temporada-max-width, var(--smpt-infobox-max-width-resolved));
+  --smpt-infobox-min-height-resolved: var(--smpt-infobox-temporada-min-height, var(--smpt-infobox-min-height-resolved));
+  --smpt-infobox-body-text-resolved: var(--smpt-infobox-temporada-body-text, var(--smpt-infobox-body-text-resolved));
+  --smpt-infobox-header-text-resolved: var(--smpt-infobox-temporada-header-text, var(--smpt-infobox-header-text-resolved));
+  --smpt-infobox-footer-text-resolved: var(--smpt-infobox-temporada-footer-text, var(--smpt-infobox-footer-text-resolved));
+  --smpt-infobox-divider-resolved: var(--smpt-infobox-temporada-divider, var(--smpt-infobox-divider-resolved));
+  --smpt-infobox-close-text-resolved: var(--smpt-infobox-temporada-close-text, var(--smpt-infobox-close-text-resolved));
+  --smpt-infobox-close-background-resolved: var(--smpt-infobox-temporada-close-background, var(--smpt-infobox-close-background-resolved));
+  --smpt-infobox-close-border-resolved: var(--smpt-infobox-temporada-close-border, var(--smpt-infobox-close-border-resolved));
+  --smpt-infobox-close-size-resolved: var(--smpt-infobox-temporada-close-size, var(--smpt-infobox-close-size-resolved));
+  --smpt-infobox-corner-size-resolved: var(--smpt-infobox-temporada-corner-size, var(--smpt-infobox-corner-size-resolved));
+  --smpt-infobox-corner-offset-x-resolved: var(--smpt-infobox-temporada-corner-offset-x, var(--smpt-infobox-corner-offset-x-resolved));
+  --smpt-infobox-corner-offset-y-resolved: var(--smpt-infobox-temporada-corner-offset-y, var(--smpt-infobox-corner-offset-y-resolved));
+  --smpt-infobox-corner-tl-image-resolved: var(--smpt-infobox-temporada-corner-tl-image, var(--smpt-infobox-corner-tl-image-resolved));
+  --smpt-infobox-corner-tr-image-resolved: var(--smpt-infobox-temporada-corner-tr-image, var(--smpt-infobox-corner-tr-image-resolved));
+  --smpt-infobox-corner-bl-image-resolved: var(--smpt-infobox-temporada-corner-bl-image, var(--smpt-infobox-corner-bl-image-resolved));
+  --smpt-infobox-corner-br-image-resolved: var(--smpt-infobox-temporada-corner-br-image, var(--smpt-infobox-corner-br-image-resolved));
 }
 
-/* Estilos para o botão de fechar */
-.fechar-btn {
-  border: solid 1px var(--cor-primaria-clara);
-  border-radius: 5px;
+.smpt-infobox__inner {
+  padding: var(--smpt-infobox-padding-top-resolved) var(--smpt-infobox-padding-right-resolved) var(--smpt-infobox-padding-bottom-resolved) var(--smpt-infobox-padding-left-resolved);
+  position: relative;
+  z-index: 2;
+}
+
+.smpt-infobox__header,
+.smpt-infobox__footer {
+  margin-bottom: 24px;
+}
+
+.smpt-infobox__header:last-child,
+.smpt-infobox__footer:last-child,
+.smpt-infobox__body:last-child {
+  margin-bottom: 0;
+}
+
+.smpt-infobox__header {
+  border-bottom: 1px solid var(--smpt-infobox-divider-resolved);
+  color: var(--smpt-infobox-header-text-resolved);
+  padding-bottom: 14px;
+}
+
+.smpt-infobox__footer {
+  border-top: 1px solid var(--smpt-infobox-divider-resolved);
+  color: var(--smpt-infobox-footer-text-resolved);
+  margin-top: 24px;
+  padding-top: 18px;
+}
+
+.smpt-infobox__close {
+  align-items: center;
+  background: var(--smpt-infobox-close-background-resolved);
+  border: 1px solid var(--smpt-infobox-close-border-resolved);
+  color: var(--smpt-infobox-close-text-resolved);
   cursor: pointer;
-  float: right;
+  display: none;
   font-weight: 700;
-  height: 30px;
-  margin: 0 0 10px 10px;
-  position: relative;
-  right: -15px;
-  text-align: center;
-  top: -28px;
-  width: 30px;
+  height: var(--smpt-infobox-close-size-resolved);
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  width: var(--smpt-infobox-close-size-resolved);
+  z-index: 3;
 }
 
-/* Estilo do botão de fechar ao passar o mouse */
-.fechar-btn:hover {
-  color: red;
+.smpt-infobox.has-close .smpt-infobox__close {
+  display: inline-flex;
 }
 
-/* Estilos para o título da infobox */
-h2.info-box {
-  margin: 0 0 30px 140px !important;
-  text-transform: uppercase;
+.smpt-infobox__close:hover {
+  filter: brightness(0.95);
 }
 
-/* Estilos para os parágrafos dentro da infobox */
-.info-box p {
-  margin: 0;
+.smpt-infobox__corner {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  display: block;
+  height: var(--smpt-infobox-corner-size-resolved);
+  pointer-events: none;
+  position: absolute;
+  width: var(--smpt-infobox-corner-size-resolved);
+  z-index: 1;
 }
 
-/* Estilos para o contêiner flexível dentro da infobox */
-.infobox .contentor {
+.smpt-infobox__corner--tl {
+  background-image: var(--smpt-infobox-corner-tl-image-resolved, none);
+  left: calc(var(--smpt-infobox-corner-offset-x-resolved) * -1);
+  top: calc(var(--smpt-infobox-corner-offset-y-resolved) * -1);
+}
+
+.smpt-infobox__corner--tr {
+  background-image: var(--smpt-infobox-corner-tr-image-resolved, none);
+  right: calc(var(--smpt-infobox-corner-offset-x-resolved) * -1);
+  top: calc(var(--smpt-infobox-corner-offset-y-resolved) * -1);
+}
+
+.smpt-infobox__corner--bl {
+  background-image: var(--smpt-infobox-corner-bl-image-resolved, none);
+  bottom: calc(var(--smpt-infobox-corner-offset-y-resolved) * -1);
+  left: calc(var(--smpt-infobox-corner-offset-x-resolved) * -1);
+}
+
+.smpt-infobox__corner--br {
+  background-image: var(--smpt-infobox-corner-br-image-resolved, none);
+  bottom: calc(var(--smpt-infobox-corner-offset-y-resolved) * -1);
+  right: calc(var(--smpt-infobox-corner-offset-x-resolved) * -1);
+}
+
+.smpt-infobox p:first-child,
+.smpt-infobox h1:first-child,
+.smpt-infobox h2:first-child,
+.smpt-infobox h3:first-child,
+.smpt-infobox h4:first-child {
+  margin-top: 0;
+}
+
+.smpt-infobox p:last-child {
+  margin-bottom: 0;
+}
+
+.smpt-infobox strong {
+  color: inherit;
+}
+
+.smpt-infobox a {
+  color: var(--accent);
+}
+
+.smpt-infobox img {
+  height: auto;
+  max-width: 100%;
+}
+
+.smpt-infobox .contentor,
+.smpt-infobox-media {
   align-items: center;
   display: flex;
+  gap: 20px;
 }
 
-/* Estilos para as células dentro da infobox */
-.infobox .celula {
+.smpt-infobox .celula {
+  flex: 1;
   text-align: center;
-  vertical-align: middle;
 }
 
-/* Estilos para os parágrafos dentro das células da infobox */
-.infobox .celula p {
+.smpt-infobox .celula p {
   margin: 0;
-  padding: 15px;
-}
-
-/* Estilos para as imagens dentro das células da infobox */
-.infobox .celula img {
-  min-width: 150px;
+  padding: 0;
 }
 
 
@@ -125,14 +236,14 @@ h3.sd-title:before {
 }
 
 h3.sd-title {
-  border-top: 2px solid var(--cor-primaria);
+  border-top: 2px solid var(--accent);
   padding-top: 10px;
 }
 
 
 /* Estilos para telas menores que 767px de largura */
 @media screen and (max-width: 767px) {
-  #jp-relatedposts, #related-posts, .infobox {
+  #jp-relatedposts, #related-posts {
     background: url(https://sm-portugal.com/wp-content/uploads/2023/12/newstopleftmini.gif) top left no-repeat,
                 url(https://sm-portugal.com/wp-content/uploads/2023/12/newstopright.gif) top right no-repeat,
                 url(https://sm-portugal.com/wp-content/uploads/2023/12/newstopcenter.gif) top center repeat-x,
@@ -142,9 +253,13 @@ h3.sd-title {
                 url(https://sm-portugal.com/wp-content/uploads/2023/12/newsleft.gif) center left repeat-y,
                 url(https://sm-portugal.com/wp-content/uploads/2023/12/newsright.gif) center right repeat-y;
     background-size: auto;  }
+
+  .smpt-infobox {
+    margin-bottom: 24px;
+  }
 	
 	
-	 #related-posts, .infobox {
+	 #related-posts {
     padding: 60px 30px 30px 50px!important;
   }
 	
@@ -157,35 +272,28 @@ h3.sd-title {
 	
 	
 	
-
-  /* Estilos ajustados para o espaço reservado dentro da infobox em telas pequenas */
-  .infobox .placeholder {
-    height: 35px;
-    width: 80px;
+  .smpt-infobox__inner {
+    padding-left: 22px;
+    padding-right: 22px;
   }
 
-  /* Estilos ajustados para o botão de fechar em telas pequenas */
-  .fechar-btn {
-    font-size: .8em;
-    height: 20px;
-    top: -15px;
-    width: 20px;
+  .smpt-infobox__close {
+    right: 12px;
+    top: 12px;
   }
 
-  /* Estilos ajustados para imagens dentro das células da infobox em telas pequenas */
-  .infobox .celula img {
+  .smpt-infobox .celula img {
     max-width: 150px;
   }
 
-  /* Estilos ajustados para o contêiner flexível dentro da infobox em telas pequenas */
-  .infobox .contentor {
+  .smpt-infobox .contentor,
+  .smpt-infobox-media {
     align-items: center;
     display: block;
   }
 
-  /* Estilos ajustados para os parágrafos dentro das células da infobox em telas pequenas */
-  .infobox .celula p {
-    padding: 5px;
+  .smpt-infobox .celula p {
+    padding: 0;
   }
 	
   /* Estilos para related comments */

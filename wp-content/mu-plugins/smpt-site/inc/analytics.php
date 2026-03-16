@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SMPT_ANALYTICS_DB_VERSION', '1.0' );
+define( 'SMPT_ANALYTICS_DB_VERSION', '1.2' );
 
 /**
  * Create or update analytics database tables.
@@ -63,14 +63,68 @@ function smpt_analytics_maybe_create_tables() {
 		total_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
 		PRIMARY KEY (id),
 		UNIQUE KEY event_item (event_type, item_id)
+	) $charset_collate;
+
+	CREATE TABLE {$wpdb->prefix}smpt_ga4_history (
+		id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+		event_date DATE NOT NULL,
+		event_type VARCHAR(20) NOT NULL,
+		item_id VARCHAR(191) NOT NULL DEFAULT '',
+		event_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+		PRIMARY KEY (id),
+		UNIQUE KEY ga4_event_item (event_date, event_type, item_id),
+		KEY event_type (event_type),
+		KEY event_date (event_date)
 	) $charset_collate;";
 
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	dbDelta( $sql );
+	smpt_analytics_optimize_ga4_history_table();
 
 	update_option( 'smpt_analytics_db_version', SMPT_ANALYTICS_DB_VERSION );
 }
 add_action( 'init', 'smpt_analytics_maybe_create_tables' );
+
+/**
+ * Keep imported GA4 history lean: only daily item counts needed for rankings.
+ */
+function smpt_analytics_optimize_ga4_history_table() {
+	global $wpdb;
+
+	$table = $wpdb->prefix . 'smpt_ga4_history';
+	$rows  = $wpdb->get_results( "SHOW COLUMNS FROM {$table}" );
+
+	if ( ! is_array( $rows ) || empty( $rows ) ) {
+		return;
+	}
+
+	$existing = array();
+	foreach ( $rows as $row ) {
+		if ( isset( $row->Field ) ) {
+			$existing[] = (string) $row->Field;
+		}
+	}
+
+	$legacy_columns = array(
+		'total_users',
+		'original_event_name',
+		'original_category',
+		'source_file',
+		'imported_at',
+	);
+	$to_drop = array_values( array_intersect( $legacy_columns, $existing ) );
+
+	if ( empty( $to_drop ) ) {
+		return;
+	}
+
+	$drop_sql = array();
+	foreach ( $to_drop as $column ) {
+		$drop_sql[] = 'DROP COLUMN `' . esc_sql( $column ) . '`';
+	}
+
+	$wpdb->query( "ALTER TABLE {$table} " . implode( ', ', $drop_sql ) );
+}
 
 /**
  * Detect country from Cloudflare header or fallback.

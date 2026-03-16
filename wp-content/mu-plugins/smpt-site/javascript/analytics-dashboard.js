@@ -4,6 +4,9 @@
 	var cfg = window.smptDashboard || {};
 	var charts = {};
 	var currentPeriod = 'month';
+	var activeMetric = 'streams';
+	var currentData = null;
+	var hasLoaded = false;
 
 	// Sailor Moon color palette.
 	var COLORS = {
@@ -31,6 +34,13 @@
 		if (el) el.classList.toggle('smpt-hidden', !show);
 	}
 
+	function showPanel(show) {
+		var panel = document.getElementById('smpt-analytics-panel');
+		var toggle = document.getElementById('smpt-toggle-stats');
+		if (panel) panel.classList.toggle('smpt-hidden', !show);
+		if (toggle) toggle.textContent = show ? 'Hide stats' : 'Show stats';
+	}
+
 	// --- Fetch data ---
 	function fetchStats(period) {
 		showLoading(true);
@@ -53,16 +63,50 @@
 		if (!container) return;
 
 		var cards = [
-			{ label: 'Visitors',   value: kpis.visitors,        color: '#50575e' },
-			{ label: 'Streams',    value: kpis.streams,         color: COLORS.stream },
-			{ label: 'Downloads',  value: kpis.downloads,       color: COLORS.download },
-			{ label: 'Music',      value: kpis.music_streams,   color: COLORS.music_stream },
-			{ label: 'Manga',      value: kpis.manga_views,     color: COLORS.manga_view },
-			{ label: 'Nostalgia',  value: kpis.nostalgia,       color: COLORS.nostalgia_play }
+			{ key: 'visitors',  label: 'Visitors',   value: kpis.visitors,      color: '#50575e' },
+			{ key: 'streams',   label: 'Streams',    value: kpis.streams,       color: COLORS.stream },
+			{ key: 'downloads', label: 'Downloads',  value: kpis.downloads,     color: COLORS.download },
+			{ key: 'music',     label: 'Music',      value: kpis.music_streams, color: COLORS.music_stream },
+			{ key: 'manga',     label: 'Manga',      value: kpis.manga,         color: COLORS.manga_view },
+			{ key: 'nostalgia', label: 'Nostalgia',  value: kpis.nostalgia,     color: COLORS.nostalgia_play }
 		];
 
 		container.innerHTML = cards.map(function (c) {
-			return '<div class="smpt-kpi-card"><div class="smpt-kpi-number" style="color:' + c.color + '">' + num(c.value) + '</div><div class="smpt-kpi-label">' + c.label + '</div></div>';
+			var active = c.key === activeMetric ? ' smpt-kpi-card-active' : '';
+			return '<button type="button" class="smpt-kpi-card' + active + '" data-metric="' + c.key + '">' +
+				'<div class="smpt-kpi-number" style="color:' + c.color + '">' + num(c.value) + '</div>' +
+				'<div class="smpt-kpi-label">' + c.label + '</div>' +
+			'</button>';
+		}).join('');
+	}
+
+	function renderDetailPanel(details) {
+		var titleEl = document.getElementById('smpt-detail-title');
+		var summaryEl = document.getElementById('smpt-detail-summary');
+		var gridEl = document.getElementById('smpt-detail-grid');
+		if (!titleEl || !summaryEl || !gridEl || !details || !details.metrics) return;
+
+		if (!details.metrics[activeMetric]) {
+			activeMetric = details.default_metric || 'streams';
+		}
+
+		var metric = details.metrics[activeMetric];
+		if (!metric) return;
+
+		titleEl.textContent = metric.title || 'Details';
+		summaryEl.textContent = metric.summary || '';
+		gridEl.innerHTML = (metric.cards || []).map(function (card) {
+			var items = card.items || [];
+			var body = items.length
+				? '<table class="smpt-table"><tbody>' + items.map(function (item) {
+					return '<tr><td class="smpt-table-label">' + escHtml(item.label) + '</td><td class="smpt-table-count">' + num(item.count) + '</td></tr>';
+				}).join('') + '</tbody></table>'
+				: '<p class="smpt-empty">No data</p>';
+
+			return '<section class="smpt-detail-card">' +
+				'<h4>' + escHtml(card.title || '') + '</h4>' +
+				body +
+			'</section>';
 		}).join('');
 	}
 
@@ -288,8 +332,13 @@
 	// --- Main render ---
 	function render(data) {
 		if (!data) return;
+		currentData = data;
+		if (data.details && data.details.metrics && !data.details.metrics[activeMetric]) {
+			activeMetric = data.details.default_metric || 'streams';
+		}
 		destroyCharts();
 		renderKPIs(data.kpis);
+		renderDetailPanel(data.details);
 		renderTimeline(data.timeline);
 		renderHBar('smpt-chart-top-streams', data.top_streams, COLORS.stream);
 		renderHBar('smpt-chart-top-downloads', data.top_downloads, COLORS.download);
@@ -320,11 +369,49 @@
 		});
 	}
 
+	function initKPIButtons() {
+		var container = document.getElementById('smpt-kpis');
+		if (!container) return;
+
+		container.addEventListener('click', function (event) {
+			var card = event.target.closest('.smpt-kpi-card');
+			if (!card) return;
+
+			activeMetric = card.getAttribute('data-metric') || activeMetric;
+			if (!currentData) return;
+
+			renderKPIs(currentData.kpis);
+			renderDetailPanel(currentData.details);
+		});
+	}
+
+	function initToggleButton() {
+		var toggle = document.getElementById('smpt-toggle-stats');
+		if (!toggle) return;
+
+		toggle.addEventListener('click', function () {
+			if (!hasLoaded) {
+				showPanel(true);
+				fetchStats(currentPeriod).then(function (data) {
+					if (!data) return;
+					hasLoaded = true;
+					render(data);
+				});
+				return;
+			}
+
+			var panel = document.getElementById('smpt-analytics-panel');
+			showPanel(panel && panel.classList.contains('smpt-hidden'));
+		});
+	}
+
 	// --- Init ---
 	function init() {
 		if (!document.getElementById('smpt-analytics-root')) return;
 		initPeriodButtons();
-		fetchStats(currentPeriod).then(render);
+		initKPIButtons();
+		initToggleButton();
+		showPanel(false);
 	}
 
 	if (document.readyState === 'loading') {
