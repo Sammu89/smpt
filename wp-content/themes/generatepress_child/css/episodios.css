@@ -308,10 +308,19 @@ video {
   width: 100%;
 }
 
+.smpt-shared-player {
+  position: relative;
+  width: 100%;
+}
+
 .smpt-shared-player video {
   width: 100%;
   height: auto;
   display: block;
+  aspect-ratio: 35 / 29;
+  object-fit: contain;
+  object-position: center center;
+  background: #000;
 }
 
 .smpt-shared-tv {
