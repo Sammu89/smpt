@@ -69,5 +69,23 @@ JS;
 			true
 		);
 	}
+
+	// Episode interactions (likes, ratings, comments, watched).
+	if ( smpt_is_episode_page() ) {
+		wp_enqueue_script(
+			'smpt-episode-interactions',
+			smpt_site_plugin_url( 'javascript/episode-interactions.js' ),
+			array( 'jquery', 'smpt-analytics' ),
+			filemtime( SMPT_SITE_PLUGIN_PATH . '/javascript/episode-interactions.js' ),
+			true
+		);
+		wp_localize_script( 'smpt-episode-interactions', 'smptEpInteractions', array(
+			'restBase'  => rest_url( 'smpt/v1/' ),
+			'nonce'     => wp_create_nonce( 'wp_rest' ),
+			'userId'    => get_current_user_id(),
+			'needsSync' => (bool) get_transient( 'smpt_ep_needs_sync_' . get_current_user_id() ),
+			'userName'  => wp_get_current_user()->display_name ?: '',
+		) );
+	}
 }
 add_action( 'wp_enqueue_scripts', 'smpt_enqueue_external_head_assets', 20 );

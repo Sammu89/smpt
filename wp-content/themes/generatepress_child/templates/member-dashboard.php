@@ -59,6 +59,33 @@ get_header();
 						</div>
 						<p class="smpt-member-note"><?php esc_html_e( 'Este painel frontal e o destino padrao da autenticacao. O fluxo normal de entrada nao expõe o backend do WordPress.', 'generatepress' ); ?></p>
 					</section>
+
+					<section class="smpt-member-panel is-active">
+						<h2><?php esc_html_e( 'Episodios vistos', 'generatepress' ); ?></h2>
+						<?php
+						$smpt_watched_eps = function_exists( 'smpt_ep_get_watched_episodes' )
+							? smpt_ep_get_watched_episodes( $smpt_dashboard_user->ID )
+							: array();
+						if ( ! empty( $smpt_watched_eps ) ) :
+						?>
+							<ul class="smpt-ep-watched-list">
+								<?php foreach ( $smpt_watched_eps as $smpt_ep_num ) :
+									$smpt_ep_padded = str_pad( $smpt_ep_num, 3, '0', STR_PAD_LEFT );
+									$smpt_ep_url    = function_exists( 'smpt_ep_get_episode_page_url' )
+										? smpt_ep_get_episode_page_url( $smpt_ep_num )
+										: '#';
+								?>
+									<li>
+										<a href="<?php echo esc_url( $smpt_ep_url ); ?>">
+											<?php echo esc_html( sprintf( __( 'Episodio %d', 'generatepress' ), $smpt_ep_num ) ); ?>
+										</a>
+									</li>
+								<?php endforeach; ?>
+							</ul>
+						<?php else : ?>
+							<p class="smpt-ep-empty"><?php esc_html_e( 'Ainda nao marcaste nenhum episodio como visto.', 'generatepress' ); ?></p>
+						<?php endif; ?>
+					</section>
 				</div>
 			</div>
 		</div>

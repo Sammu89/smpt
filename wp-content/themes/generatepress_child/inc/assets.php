@@ -112,6 +112,12 @@ function smpt_generatepress_enqueue_styles() {
 			array( 'generate-style' ),
 			$episodios_ver
 		);
+		wp_enqueue_style(
+			'smpt-episode-interactions-style',
+			get_stylesheet_directory_uri() . '/css/episode-interactions.css',
+			array( 'smpt-episodios-style' ),
+			smpt_child_asset_version( 'css/episode-interactions.css', $version )
+		);
 	}
 }
 add_action( 'wp_enqueue_scripts', 'smpt_generatepress_enqueue_styles' );

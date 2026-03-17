@@ -1,0 +1,331 @@
+/* ==========================================================================
+   Episode Interactions — Ratings, Likes, Comments, Watched
+   ========================================================================== */
+
+/* --- Container --- */
+
+.smpt-ep-interactions {
+  border-top: 1px solid var(--smpt-table-divider-color-resolved, #eee);
+  padding: 8px 10px;
+}
+
+.smpt-ep-interactions.is-loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* --- Action Bar --- */
+
+.smpt-ep-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* --- Star Rating --- */
+
+.smpt-ep-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.smpt-ep-star {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.smpt-ep-star svg {
+  fill: #ddd;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.smpt-ep-star svg.smpt-ep-star-fill {
+  fill: #f5c518;
+  -webkit-clip-path: inset(0 100% 0 0);
+  clip-path: inset(0 100% 0 0);
+}
+
+.smpt-ep-star.is-full svg.smpt-ep-star-fill {
+  -webkit-clip-path: inset(0 0 0 0);
+  clip-path: inset(0 0 0 0);
+}
+
+.smpt-ep-star.is-half svg.smpt-ep-star-fill {
+  -webkit-clip-path: inset(0 50% 0 0);
+  clip-path: inset(0 50% 0 0);
+}
+
+/* --- Star Hit Zones (half-star click targets) --- */
+
+.smpt-ep-star-half {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.smpt-ep-star-left {
+  left: 0;
+}
+
+.smpt-ep-star-right {
+  right: 0;
+}
+
+/* --- Star Hover Preview --- */
+
+.smpt-ep-stars.is-hovering .smpt-ep-star.is-preview svg.smpt-ep-star-fill {
+  -webkit-clip-path: inset(0 0 0 0);
+  clip-path: inset(0 0 0 0);
+  opacity: 0.7;
+}
+
+/* --- Rating Info --- */
+
+.smpt-ep-rating-info {
+  font-size: 0.85em;
+  color: var(--contrast-2, #666);
+  white-space: nowrap;
+}
+
+/* --- Like / Dislike Buttons --- */
+
+.smpt-ep-like-btn,
+.smpt-ep-dislike-btn {
+  background: none;
+  border: 1px solid var(--smpt-table-divider-color-resolved, #ddd);
+  border-radius: 16px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.85em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.2s, border-color 0.2s;
+  color: inherit;
+}
+
+.smpt-ep-like-btn:hover {
+  border-color: #4caf50;
+}
+
+.smpt-ep-dislike-btn:hover {
+  border-color: #f44336;
+}
+
+.smpt-ep-like-btn.is-active {
+  background: rgba(76, 175, 80, 0.12);
+  border-color: #4caf50;
+  color: #2e7d32;
+}
+
+.smpt-ep-dislike-btn.is-active {
+  background: rgba(244, 67, 54, 0.12);
+  border-color: #f44336;
+  color: #c62828;
+}
+
+/* --- Comment Toggle --- */
+
+.smpt-ep-comment-toggle {
+  background: none;
+  border: 1px solid var(--smpt-table-divider-color-resolved, #ddd);
+  border-radius: 16px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.85em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+}
+
+.smpt-ep-comment-toggle:hover {
+  border-color: var(--accent, #2678dc);
+}
+
+/* --- Watched Badge --- */
+
+.smpt-ep-watched-btn {
+  background: none;
+  border: 1px solid var(--smpt-table-divider-color-resolved, #ddd);
+  border-radius: 16px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.85em;
+  color: inherit;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.smpt-ep-watched-btn:hover {
+  border-color: var(--accent, #2678dc);
+}
+
+.smpt-ep-watched-btn.is-watched {
+  background: rgba(38, 120, 220, 0.12);
+  border-color: var(--accent, #2678dc);
+  color: #1a5dab;
+}
+
+/* ==========================================================================
+   Comments Section
+   ========================================================================== */
+
+.smpt-ep-comments {
+  border-top: 1px solid var(--smpt-table-divider-color-resolved, #eee);
+  padding: 10px;
+}
+
+.smpt-ep-comment {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.smpt-ep-comment:last-of-type {
+  border-bottom: 0;
+}
+
+.smpt-ep-comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.smpt-ep-comment-author {
+  font-size: 0.9em;
+}
+
+.smpt-ep-comment-time {
+  font-size: 0.78em;
+  color: var(--contrast-2, #999);
+}
+
+.smpt-ep-comment-text {
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+/* --- Comment Form --- */
+
+.smpt-ep-comment-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.smpt-ep-comment-name,
+.smpt-ep-comment-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--smpt-table-divider-color-resolved, #ddd);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9em;
+  box-sizing: border-box;
+}
+
+.smpt-ep-comment-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.smpt-ep-comment-submit {
+  align-self: flex-end;
+  background: var(--accent, #2678dc);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9em;
+  transition: opacity 0.2s;
+}
+
+.smpt-ep-comment-submit:hover {
+  opacity: 0.85;
+}
+
+/* --- Load More Button --- */
+
+.smpt-ep-load-more {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin: 8px 0;
+  background: none;
+  border: 1px solid var(--smpt-table-divider-color-resolved, #ddd);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--accent, #2678dc);
+  font-size: 0.85em;
+  text-align: center;
+}
+
+.smpt-ep-load-more:hover {
+  background: rgba(38, 120, 220, 0.05);
+}
+
+/* ==========================================================================
+   Member Dashboard — Watched Episodes Panel
+   ========================================================================== */
+
+.smpt-ep-watched-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.smpt-ep-watched-list li {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(224, 230, 238, 0.95);
+}
+
+.smpt-ep-watched-list li:last-child {
+  border-bottom: 0;
+}
+
+.smpt-ep-watched-list a {
+  color: #2678dc;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.smpt-ep-watched-list a:hover {
+  text-decoration: underline;
+}
+
+.smpt-ep-empty {
+  color: var(--contrast-2, #888);
+  font-style: italic;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .smpt-ep-bar {
+    gap: 6px;
+  }
+
+  .smpt-ep-stars svg {
+    width: 18px;
+    height: 18px;
+  }
+}

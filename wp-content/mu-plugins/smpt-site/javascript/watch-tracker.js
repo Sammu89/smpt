@@ -104,6 +104,7 @@
 			if (state.eventId && state.seconds > 0) {
 				state.milestone = 100;
 				flush();
+				document.dispatchEvent(new CustomEvent('smpt:watchComplete', { detail: { itemId: itemId } }));
 			}
 		});
 

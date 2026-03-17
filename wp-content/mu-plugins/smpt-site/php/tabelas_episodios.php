@@ -291,6 +291,7 @@ function gerar_episodios($inicio, $fim) {
         }
         echo do_shortcode('[epi num=' . $i . ' campo=resumo]') . '</div>
            </div>
+           <div class="smpt-ep-interactions" data-ep="' . $i . '"></div>
         </div>
         <div class="topo">
            <a href="#escolher-episodio" class="topo-link">↑ topo</a>
