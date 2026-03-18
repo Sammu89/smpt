@@ -1,6 +1,6 @@
 <?php
 /**
- * Episode interactions backend — likes, dislikes, ratings, watched status, and comments.
+ * Episode interactions backend — likes, dislikes, ratings, watched/want/favorite status, and comments.
  *
  * Episodes are HTML cards (not WP posts) with IDs like episodio_001.
  * All interaction data lives in custom DB tables.
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Create or update episode interaction database tables.
  */
 function smpt_ep_maybe_create_tables() {
-	$db_ver    = '1.1';
+	$db_ver    = '1.2';
 	$installed = get_option( 'smpt_ep_interactions_db_ver', '' );
 
 	if ( $db_ver === $installed ) {
@@ -65,6 +65,37 @@ function smpt_ep_maybe_create_tables() {
 		rating_count INT UNSIGNED NOT NULL DEFAULT 0,
 		comment_count INT UNSIGNED NOT NULL DEFAULT 0,
 		PRIMARY KEY (episode_id)
+	) $charset_collate;
+
+	CREATE TABLE {$wpdb->prefix}smpt_user_points (
+		user_id BIGINT UNSIGNED PRIMARY KEY,
+		total_points INT DEFAULT 0,
+		current_tier INT DEFAULT 0,
+		views_today INT DEFAULT 0,
+		last_view_date DATE,
+		created_at DATETIME,
+		updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
+		INDEX(current_tier)
+	) $charset_collate;
+
+	CREATE TABLE {$wpdb->prefix}smpt_point_log (
+		id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+		user_id BIGINT UNSIGNED NOT NULL,
+		action VARCHAR(50),
+		points_awarded INT,
+		context_id INT,
+		created_at DATETIME,
+		INDEX(user_id, created_at)
+	) $charset_collate;
+
+	CREATE TABLE {$wpdb->prefix}smpt_interaction_throttle (
+		id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+		user_id BIGINT UNSIGNED NOT NULL,
+		episode_id SMALLINT UNSIGNED,
+		action_type VARCHAR(30),
+		last_action_at DATETIME,
+		UNIQUE KEY user_ep_action (user_id, episode_id, action_type),
+		INDEX(last_action_at)
 	) $charset_collate;";
 
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -205,17 +236,14 @@ function smpt_ep_set_reaction( $ep_id, $user_id, $anon_uuid, $intent ) {
 				) );
 			}
 
-			// Only increment if we actually inserted (not a dupe update).
-			if ( $wpdb->rows_affected > 0 && false === $wpdb->get_var( "SELECT id FROM {$table} WHERE {$base_where} AND interaction_type = 'like' AND created_at != updated_at AND updated_at = '{$wpdb->_real_escape( $now )}'" ) ) {
-				// Simpler: just use INSERT ... ON DUPLICATE KEY for counter too.
+			// Increment counter only when a new row was inserted (rows_affected=1).
+			// ON DUPLICATE KEY UPDATE returns 2 if the existing row was changed → skip.
+			if ( 1 === $wpdb->rows_affected ) {
+				$wpdb->query( $wpdb->prepare(
+					"UPDATE {$counter} SET likes = likes + 1 WHERE episode_id = %d",
+					$ep_id
+				) );
 			}
-			// Always recalc is safest for likes counter, but increment approach:
-			$wpdb->query( $wpdb->prepare(
-				"UPDATE {$counter} SET likes = (
-					SELECT COUNT(*) FROM {$table} WHERE episode_id = %d AND interaction_type = 'like'
-				) WHERE episode_id = %d",
-				$ep_id, $ep_id
-			) );
 			break;
 
 		case 'dislike':
@@ -246,12 +274,13 @@ function smpt_ep_set_reaction( $ep_id, $user_id, $anon_uuid, $intent ) {
 				) );
 			}
 
-			$wpdb->query( $wpdb->prepare(
-				"UPDATE {$counter} SET dislikes = (
-					SELECT COUNT(*) FROM {$table} WHERE episode_id = %d AND interaction_type = 'dislike'
-				) WHERE episode_id = %d",
-				$ep_id, $ep_id
-			) );
+			// Increment counter only when a new row was inserted (rows_affected=1).
+			if ( 1 === $wpdb->rows_affected ) {
+				$wpdb->query( $wpdb->prepare(
+					"UPDATE {$counter} SET dislikes = dislikes + 1 WHERE episode_id = %d",
+					$ep_id
+				) );
+			}
 			break;
 
 		case 'remove_like':
@@ -400,8 +429,48 @@ function smpt_ep_remove_rating( $ep_id, $user_id, $anon_uuid ) {
 }
 
 /* =========================================================================
-   Watched status (logged-in only)
+   Personal status flags (logged-in only)
    ========================================================================= */
+
+/**
+ * Set an exclusive watch-status flag for a logged-in user.
+ *
+ * Watched and want-to-watch are mutually exclusive. Setting one clears the other.
+ *
+ * @param int    $ep_id   Episode number (1-200).
+ * @param int    $user_id WordPress user ID.
+ * @param string $type    Either 'watched' or 'want_watch'.
+ * @return bool True on success.
+ */
+function smpt_ep_set_exclusive_watch_state( $ep_id, $user_id, $type ) {
+	global $wpdb;
+
+	if ( $user_id <= 0 || ! in_array( $type, array( 'watched', 'want_watch' ), true ) ) {
+		return false;
+	}
+
+	$table     = $wpdb->prefix . 'smpt_episode_interactions';
+	$now       = current_time( 'mysql' );
+	$opposite  = 'watched' === $type ? 'want_watch' : 'watched';
+
+	$wpdb->query( 'START TRANSACTION' );
+
+	$wpdb->query( $wpdb->prepare(
+		"DELETE FROM {$table} WHERE user_id = %d AND episode_id = %d AND interaction_type = %s",
+		$user_id, $ep_id, $opposite
+	) );
+
+	$wpdb->query( $wpdb->prepare(
+		"INSERT INTO {$table} (user_id, anon_hash, episode_id, interaction_type, created_at, updated_at)
+		 VALUES (%d, NULL, %d, %s, %s, %s)
+		 ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)",
+		$user_id, $ep_id, $type, $now, $now
+	) );
+
+	$wpdb->query( 'COMMIT' );
+
+	return true;
+}
 
 /**
  * Mark an episode as watched for a logged-in user.
@@ -411,23 +480,7 @@ function smpt_ep_remove_rating( $ep_id, $user_id, $anon_uuid ) {
  * @return bool True on success.
  */
 function smpt_ep_set_watched( $ep_id, $user_id ) {
-	global $wpdb;
-
-	if ( $user_id <= 0 ) {
-		return false;
-	}
-
-	$table = $wpdb->prefix . 'smpt_episode_interactions';
-	$now   = current_time( 'mysql' );
-
-	$wpdb->query( $wpdb->prepare(
-		"INSERT INTO {$table} (user_id, anon_hash, episode_id, interaction_type, created_at, updated_at)
-		 VALUES (%d, NULL, %d, 'watched', %s, %s)
-		 ON DUPLICATE KEY UPDATE updated_at = %s",
-		$user_id, $ep_id, $now, $now, $now
-	) );
-
-	return true;
+	return smpt_ep_set_exclusive_watch_state( $ep_id, $user_id, 'watched' );
 }
 
 /**
@@ -459,22 +512,50 @@ function smpt_ep_remove_watched( $ep_id, $user_id ) {
 }
 
 /**
+ * Resolve watched/want states for a user, with the most recently updated flag winning.
+ *
+ * @param int $user_id WordPress user ID.
+ * @return array<int,string> Array keyed by episode ID with values 'watched' or 'want_watch'.
+ */
+function smpt_ep_get_watch_preference_map( $user_id ) {
+	global $wpdb;
+
+	$table = $wpdb->prefix . 'smpt_episode_interactions';
+	$rows  = $wpdb->get_results( $wpdb->prepare(
+		"SELECT episode_id, interaction_type
+		 FROM {$table}
+		 WHERE user_id = %d AND interaction_type IN ('watched', 'want_watch')
+		 ORDER BY updated_at ASC, id ASC",
+		$user_id
+	) );
+
+	$map = array();
+	foreach ( $rows as $row ) {
+		$map[ (int) $row->episode_id ] = $row->interaction_type;
+	}
+
+	return $map;
+}
+
+/**
  * Get all watched episode IDs for a user.
  *
  * @param int $user_id WordPress user ID.
  * @return int[] Array of episode numbers.
  */
 function smpt_ep_get_watched_episodes( $user_id ) {
-	global $wpdb;
+	$map      = smpt_ep_get_watch_preference_map( $user_id );
+	$episodes = array();
 
-	$table = $wpdb->prefix . 'smpt_episode_interactions';
+	foreach ( $map as $episode_id => $type ) {
+		if ( 'watched' === $type ) {
+			$episodes[] = (int) $episode_id;
+		}
+	}
 
-	$rows = $wpdb->get_col( $wpdb->prepare(
-		"SELECT episode_id FROM {$table} WHERE user_id = %d AND interaction_type = 'watched' ORDER BY episode_id",
-		$user_id
-	) );
+	sort( $episodes, SORT_NUMERIC );
 
-	return array_map( 'intval', $rows );
+	return $episodes;
 }
 
 /* =========================================================================
@@ -542,7 +623,7 @@ function smpt_ep_add_comment( $ep_id, $user_id, $anon_uuid, $author_name, $text,
  * @param int $per_page Comments per page.
  * @return array Associative array with 'comments' and 'total' keys.
  */
-function smpt_ep_get_comments( $ep_id, $page = 1, $per_page = 20 ) {
+function smpt_ep_get_comments( $ep_id, $page = 1, $per_page = 20, $actor = null ) {
 	global $wpdb;
 
 	$table  = $wpdb->prefix . 'smpt_episode_comments';
@@ -553,8 +634,8 @@ function smpt_ep_get_comments( $ep_id, $page = 1, $per_page = 20 ) {
 		$ep_id
 	) );
 
-	$comments = $wpdb->get_results( $wpdb->prepare(
-		"SELECT id, author_name, comment_text, created_at, user_id
+	$rows = $wpdb->get_results( $wpdb->prepare(
+		"SELECT id, author_name, comment_text, created_at, updated_at, user_id, anon_hash
 		 FROM {$table}
 		 WHERE episode_id = %d
 		 ORDER BY created_at ASC
@@ -562,15 +643,335 @@ function smpt_ep_get_comments( $ep_id, $page = 1, $per_page = 20 ) {
 		$ep_id, $per_page, $offset
 	) );
 
+	$comments = array();
+	if ( $rows ) {
+		foreach ( $rows as $row ) {
+			$is_own = false;
+			if ( null !== $actor ) {
+				if ( null !== $actor['user_id'] && (int) $row->user_id === (int) $actor['user_id'] ) {
+					$is_own = true;
+				} elseif ( null !== $actor['anon_hash'] && null !== $row->anon_hash ) {
+					$is_own = hash_equals( $actor['anon_hash'], $row->anon_hash );
+				}
+			}
+			$comments[] = array(
+				'id'           => (int) $row->id,
+				'author_name'  => $row->author_name,
+				'comment_text' => $row->comment_text,
+				'created_at'   => $row->created_at,
+				'updated_at'   => $row->updated_at,
+				'user_id'      => $row->user_id ? (int) $row->user_id : null,
+				'is_own'       => $is_own,
+			);
+		}
+	}
+
 	return array(
-		'comments' => $comments ? $comments : array(),
+		'comments' => $comments,
 		'total'    => $total,
 	);
+}
+
+/**
+ * Check whether an actor owns a comment row.
+ *
+ * @param object $comment  DB row with user_id and anon_hash fields.
+ * @param int    $user_id  Current user ID (0 if anon).
+ * @param string $anon_uuid Raw visitor UUID.
+ * @return bool
+ */
+function smpt_ep_is_comment_owner( $comment, $user_id, $anon_uuid ) {
+	if ( $user_id > 0 ) {
+		return (int) $comment->user_id === $user_id;
+	}
+	if ( '' !== $anon_uuid && null !== $comment->anon_hash ) {
+		return hash_equals( smpt_ep_hash_anon_uuid( $anon_uuid ), $comment->anon_hash );
+	}
+	return false;
+}
+
+/**
+ * Edit an existing comment (within 24-hour window, owner or admin only).
+ *
+ * @param int    $comment_id ID of the comment to edit.
+ * @param int    $user_id    Current user ID (0 if anon).
+ * @param string $anon_uuid  Raw visitor UUID.
+ * @param string $new_text   Replacement comment text.
+ * @return true|string True on success; 'not_found', 'expired', or 'forbidden' on failure.
+ */
+function smpt_ep_edit_comment( $comment_id, $user_id, $anon_uuid, $new_text ) {
+	global $wpdb;
+
+	$table   = $wpdb->prefix . 'smpt_episode_comments';
+	$comment = $wpdb->get_row( $wpdb->prepare(
+		"SELECT id, user_id, anon_hash, created_at FROM {$table} WHERE id = %d",
+		$comment_id
+	) );
+
+	if ( ! $comment ) {
+		return 'not_found';
+	}
+
+	$age_seconds = time() - strtotime( $comment->created_at );
+	if ( $age_seconds > DAY_IN_SECONDS && ! current_user_can( 'edit_others_posts' ) ) {
+		return 'expired';
+	}
+
+	if ( ! smpt_ep_is_comment_owner( $comment, $user_id, $anon_uuid ) && ! current_user_can( 'edit_others_posts' ) ) {
+		return 'forbidden';
+	}
+
+	$wpdb->update(
+		$table,
+		array( 'comment_text' => $new_text, 'updated_at' => current_time( 'mysql' ) ),
+		array( 'id' => $comment_id ),
+		array( '%s', '%s' ),
+		array( '%d' )
+	);
+
+	return true;
+}
+
+/**
+ * Delete a comment (owner or admin only, no time limit for admins).
+ *
+ * @param int    $comment_id ID of the comment to delete.
+ * @param int    $user_id    Current user ID (0 if anon).
+ * @param string $anon_uuid  Raw visitor UUID.
+ * @return true|string True on success; 'not_found' or 'forbidden' on failure.
+ */
+function smpt_ep_delete_comment( $comment_id, $user_id, $anon_uuid ) {
+	global $wpdb;
+
+	$table   = $wpdb->prefix . 'smpt_episode_comments';
+	$counter = $wpdb->prefix . 'smpt_episode_counters';
+
+	$comment = $wpdb->get_row( $wpdb->prepare(
+		"SELECT id, user_id, anon_hash, episode_id FROM {$table} WHERE id = %d",
+		$comment_id
+	) );
+
+	if ( ! $comment ) {
+		return 'not_found';
+	}
+
+	if ( ! smpt_ep_is_comment_owner( $comment, $user_id, $anon_uuid ) && ! current_user_can( 'edit_others_posts' ) ) {
+		return 'forbidden';
+	}
+
+	$wpdb->delete( $table, array( 'id' => $comment_id ), array( '%d' ) );
+
+	$wpdb->query( $wpdb->prepare(
+		"UPDATE {$counter} SET comment_count = GREATEST(comment_count - 1, 0) WHERE episode_id = %d",
+		(int) $comment->episode_id
+	) );
+
+	return true;
+}
+
+/**
+ * Add an episode to a logged-in user's "want to watch" list.
+ *
+ * @param int $ep_id   Episode number.
+ * @param int $user_id WordPress user ID.
+ * @return bool
+ */
+function smpt_ep_set_want( $ep_id, $user_id ) {
+	return smpt_ep_set_exclusive_watch_state( $ep_id, $user_id, 'want_watch' );
+}
+
+/**
+ * Remove an episode from a user's "want to watch" list.
+ *
+ * @param int $ep_id   Episode number.
+ * @param int $user_id WordPress user ID.
+ * @return bool
+ */
+function smpt_ep_remove_want( $ep_id, $user_id ) {
+	global $wpdb;
+
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	$table   = $wpdb->prefix . 'smpt_episode_interactions';
+	$deleted = $wpdb->delete(
+		$table,
+		array(
+			'user_id'          => $user_id,
+			'episode_id'       => $ep_id,
+			'interaction_type' => 'want_watch',
+		),
+		array( '%d', '%d', '%s' )
+	);
+
+	return (bool) $deleted;
+}
+
+/**
+ * Get all "want to watch" episode IDs for a user.
+ *
+ * @param int $user_id WordPress user ID.
+ * @return int[]
+ */
+function smpt_ep_get_want_episodes( $user_id ) {
+	global $wpdb;
+
+	$map      = smpt_ep_get_watch_preference_map( $user_id );
+	$episodes = array();
+
+	foreach ( $map as $episode_id => $type ) {
+		if ( 'want_watch' === $type ) {
+			$episodes[] = (int) $episode_id;
+		}
+	}
+
+	sort( $episodes, SORT_NUMERIC );
+
+	return $episodes;
+}
+
+/**
+ * Mark an episode as favorite for a logged-in user.
+ *
+ * @param int $ep_id   Episode number.
+ * @param int $user_id WordPress user ID.
+ * @return bool
+ */
+function smpt_ep_set_favorite( $ep_id, $user_id ) {
+	global $wpdb;
+
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	$table = $wpdb->prefix . 'smpt_episode_interactions';
+	$now   = current_time( 'mysql' );
+
+	$wpdb->query( $wpdb->prepare(
+		"INSERT INTO {$table} (user_id, anon_hash, episode_id, interaction_type, created_at, updated_at)
+		 VALUES (%d, NULL, %d, 'favorite', %s, %s)
+		 ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)",
+		$user_id, $ep_id, $now, $now
+	) );
+
+	return true;
+}
+
+/**
+ * Remove an episode from a user's favorites.
+ *
+ * @param int $ep_id   Episode number.
+ * @param int $user_id WordPress user ID.
+ * @return bool
+ */
+function smpt_ep_remove_favorite( $ep_id, $user_id ) {
+	global $wpdb;
+
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	$table   = $wpdb->prefix . 'smpt_episode_interactions';
+	$deleted = $wpdb->delete(
+		$table,
+		array(
+			'user_id'          => $user_id,
+			'episode_id'       => $ep_id,
+			'interaction_type' => 'favorite',
+		),
+		array( '%d', '%d', '%s' )
+	);
+
+	return (bool) $deleted;
+}
+
+/**
+ * Get all favorite episode IDs for a user.
+ *
+ * @param int $user_id WordPress user ID.
+ * @return int[]
+ */
+function smpt_ep_get_favorite_episodes( $user_id ) {
+	global $wpdb;
+
+	$table = $wpdb->prefix . 'smpt_episode_interactions';
+	$rows  = $wpdb->get_col( $wpdb->prepare(
+		"SELECT episode_id FROM {$table} WHERE user_id = %d AND interaction_type = 'favorite' ORDER BY episode_id",
+		$user_id
+	) );
+
+	return array_map( 'intval', $rows );
 }
 
 /* =========================================================================
    Batch queries
    ========================================================================= */
+
+/**
+ * Return the default counter payload for one episode card.
+ *
+ * @return array
+ */
+function smpt_ep_default_counter_row() {
+	return array(
+		'likes'         => 0,
+		'dislikes'      => 0,
+		'rating_sum'    => 0.0,
+		'rating_count'  => 0,
+		'rating_avg'    => 0,
+		'comment_count' => 0,
+		'views'         => 0,
+		'downloads'     => 0,
+	);
+}
+
+/**
+ * Merge analytics counter rows into episode interaction counters.
+ *
+ * Views = remaster stream + nostalgia stream + imported GA4 stream.
+ * Downloads = av1 + h264 + imported GA4 mp4/av1/h264.
+ *
+ * @param array $keyed Counters keyed by episode number.
+ * @param array $rows  Analytics rows with event_type, item_id, and cnt.
+ * @return array
+ */
+function smpt_ep_merge_analytics_totals_into_counters( array $keyed, array $rows ) {
+	foreach ( $rows as $row ) {
+		$event_type = isset( $row->event_type ) ? (string) $row->event_type : '';
+		$item_id    = isset( $row->item_id ) ? (string) $row->item_id : '';
+		$count      = isset( $row->cnt ) ? (int) $row->cnt : 0;
+
+		if ( $count <= 0 || '' === $event_type || '' === $item_id ) {
+			continue;
+		}
+
+		if ( 'stream' === $event_type && preg_match( '/^episodio_(\d+)$/', $item_id, $matches ) ) {
+			$ep_num = (int) $matches[1];
+			if ( isset( $keyed[ $ep_num ] ) ) {
+				$keyed[ $ep_num ]['views'] += $count;
+			}
+			continue;
+		}
+
+		if ( 'nostalgia_play' === $event_type && preg_match( '/^nostalgia_ep_(\d+)$/', $item_id, $matches ) ) {
+			$ep_num = (int) $matches[1];
+			if ( isset( $keyed[ $ep_num ] ) ) {
+				$keyed[ $ep_num ]['views'] += $count;
+			}
+			continue;
+		}
+
+		if ( 'download' === $event_type && preg_match( '/^download_ep(\d+)_(av1|h264|mp4)$/', $item_id, $matches ) ) {
+			$ep_num = (int) $matches[1];
+			if ( isset( $keyed[ $ep_num ] ) ) {
+				$keyed[ $ep_num ]['downloads'] += $count;
+			}
+		}
+	}
+
+	return $keyed;
+}
 
 /**
  * Get counters for a batch of episodes in a single query.
@@ -585,28 +986,91 @@ function smpt_ep_get_batch_counters( $ep_ids ) {
 		return array();
 	}
 
+	$ep_ids = array_values( array_unique( array_map( 'intval', $ep_ids ) ) );
 	$table        = $wpdb->prefix . 'smpt_episode_counters';
 	$placeholders = implode( ',', array_fill( 0, count( $ep_ids ), '%d' ) );
+	$keyed        = array();
+
+	foreach ( $ep_ids as $ep_id ) {
+		$keyed[ $ep_id ] = smpt_ep_default_counter_row();
+	}
 
 	$rows = $wpdb->get_results( $wpdb->prepare(
 		"SELECT * FROM {$table} WHERE episode_id IN ({$placeholders})",
 		$ep_ids
 	) );
 
-	$keyed = array();
 	if ( $rows ) {
 		foreach ( $rows as $row ) {
 			$eid = (int) $row->episode_id;
-			$keyed[ $eid ] = array(
-				'likes'        => (int) $row->likes,
-				'dislikes'     => (int) $row->dislikes,
-				'rating_sum'   => (float) $row->rating_sum,
-				'rating_count' => (int) $row->rating_count,
-				'rating_avg'   => $row->rating_count > 0
-					? round( (float) $row->rating_sum / (int) $row->rating_count, 1 )
-					: 0,
-				'comment_count' => (int) $row->comment_count,
-			);
+			if ( ! isset( $keyed[ $eid ] ) ) {
+				$keyed[ $eid ] = smpt_ep_default_counter_row();
+			}
+
+			$keyed[ $eid ]['likes']         = (int) $row->likes;
+			$keyed[ $eid ]['dislikes']      = (int) $row->dislikes;
+			$keyed[ $eid ]['rating_sum']    = (float) $row->rating_sum;
+			$keyed[ $eid ]['rating_count']  = (int) $row->rating_count;
+			$keyed[ $eid ]['rating_avg']    = $row->rating_count > 0
+				? round( (float) $row->rating_sum / (int) $row->rating_count, 1 )
+				: 0;
+			$keyed[ $eid ]['comment_count'] = (int) $row->comment_count;
+		}
+	}
+
+	$counters_table = $wpdb->prefix . 'smpt_counters';
+	$ga_table       = $wpdb->prefix . 'smpt_ga4_history';
+	$stream_item_ids = array_map(
+		static function ( $id ) {
+			return sprintf( 'episodio_%03d', $id );
+		},
+		$ep_ids
+	);
+	$nostalgia_item_ids = array_map(
+		static function ( $id ) {
+			return sprintf( 'nostalgia_ep_%03d', $id );
+		},
+		$ep_ids
+	);
+	$download_item_ids = array();
+	foreach ( $ep_ids as $ep_id ) {
+		$download_item_ids[] = sprintf( 'download_ep%03d_av1', $ep_id );
+		$download_item_ids[] = sprintf( 'download_ep%03d_h264', $ep_id );
+		$download_item_ids[] = sprintf( 'download_ep%03d_mp4', $ep_id );
+	}
+
+	if ( $wpdb->get_var( "SHOW TABLES LIKE '{$counters_table}'" ) === $counters_table ) {
+		$local_item_ids = array_merge( $stream_item_ids, $nostalgia_item_ids, $download_item_ids );
+		if ( ! empty( $local_item_ids ) ) {
+			$id_holders  = implode( ',', array_fill( 0, count( $local_item_ids ), '%s' ) );
+			$local_rows  = $wpdb->get_results( $wpdb->prepare(
+				"SELECT event_type, item_id, total_count AS cnt FROM {$counters_table}
+				 WHERE event_type IN ('stream', 'nostalgia_play', 'download')
+				 AND item_id IN ({$id_holders})",
+				$local_item_ids
+			) );
+
+			if ( $local_rows ) {
+				$keyed = smpt_ep_merge_analytics_totals_into_counters( $keyed, $local_rows );
+			}
+		}
+	}
+
+	if ( $wpdb->get_var( "SHOW TABLES LIKE '{$ga_table}'" ) === $ga_table ) {
+		$ga_item_ids = array_merge( $stream_item_ids, $download_item_ids );
+		if ( ! empty( $ga_item_ids ) ) {
+			$id_holders = implode( ',', array_fill( 0, count( $ga_item_ids ), '%s' ) );
+			$ga_rows    = $wpdb->get_results( $wpdb->prepare(
+				"SELECT event_type, item_id, SUM(event_count) AS cnt FROM {$ga_table}
+				 WHERE event_type IN ('stream', 'download')
+				 AND item_id IN ({$id_holders})
+				 GROUP BY event_type, item_id",
+				$ga_item_ids
+			) );
+
+			if ( $ga_rows ) {
+				$keyed = smpt_ep_merge_analytics_totals_into_counters( $keyed, $ga_rows );
+			}
 		}
 	}
 
@@ -632,8 +1096,9 @@ function smpt_ep_get_user_states( $actor, $ep_ids ) {
 	$placeholders = implode( ',', array_fill( 0, count( $ep_ids ), '%d' ) );
 
 	$rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT episode_id, interaction_type, value FROM {$table}
-		 WHERE {$aw['clause']} AND episode_id IN ({$placeholders})",
+		"SELECT episode_id, interaction_type, value, updated_at, id FROM {$table}
+		 WHERE {$aw['clause']} AND episode_id IN ({$placeholders})
+		 ORDER BY updated_at ASC, id ASC",
 		array_merge( $aw['params'], $ep_ids )
 	) );
 
@@ -648,7 +1113,10 @@ function smpt_ep_get_user_states( $actor, $ep_ids ) {
 			$type = $row->interaction_type;
 			if ( 'rating' === $type ) {
 				$states[ $eid ]['rating'] = (float) $row->value;
-			} else {
+			} elseif ( 'watched' === $type || 'want_watch' === $type ) {
+				unset( $states[ $eid ]['watched'], $states[ $eid ]['want_watch'] );
+				$states[ $eid ][ $type ] = true;
+			} elseif ( in_array( $type, array( 'like', 'dislike', 'favorite' ), true ) ) {
 				$states[ $eid ][ $type ] = true;
 			}
 		}
@@ -727,6 +1195,343 @@ function smpt_ep_get_episode_page_url( $ep_num ) {
 }
 
 /* =========================================================================
+   Engagement Tiers & Points System
+   ========================================================================= */
+
+/**
+ * Point values for different interactions
+ */
+function smpt_ep_get_point_value( $action ) {
+	$values = array(
+		'comment'  => 7,
+		'rate'     => 3,
+		'like'     => 1,
+		'dislike'  => 1,
+	);
+	return isset( $values[ $action ] ) ? $values[ $action ] : 0;
+}
+
+/**
+ * Get user's current tier based on total points
+ *
+ * @param int $user_id User ID
+ * @return int Tier (0-4)
+ */
+function smpt_ep_get_user_tier( $user_id ) {
+	global $wpdb;
+
+	$total_points = intval( $wpdb->get_var( $wpdb->prepare(
+		"SELECT total_points FROM {$wpdb->prefix}smpt_user_points WHERE user_id = %d",
+		$user_id
+	) ) ?: 0 );
+
+	// Tier thresholds: 0->40->80->120->160->200
+	if ( $total_points < 40 ) {
+		return 0; // Membro (3 eps/day)
+	} elseif ( $total_points < 80 ) {
+		return 1; // (5 eps/day)
+	} elseif ( $total_points < 120 ) {
+		return 2; // (7 eps/day)
+	} elseif ( $total_points < 160 ) {
+		return 3; // (10 eps/day)
+	} else {
+		return 4; // (15 eps/day)
+	}
+}
+
+/**
+ * Get daily view limit for user's tier
+ *
+ * @param int $user_id User ID
+ * @return int Daily limit
+ */
+function smpt_ep_get_daily_limit( $user_id ) {
+	// Admins bypass all limits
+	if ( user_can( $user_id, 'manage_options' ) ) {
+		return 999;
+	}
+
+	$tier = smpt_ep_get_user_tier( $user_id );
+	$limits = array( 3, 5, 7, 10, 15 ); // Tier 0-4
+	return $limits[ $tier ] ?? 3;
+}
+
+/**
+ * Check if user reached 50 point daily cap
+ *
+ * @param int $user_id User ID
+ * @return bool True if reached cap
+ */
+function smpt_ep_check_daily_point_cap( $user_id ) {
+	// Admins bypass point cap
+	if ( user_can( $user_id, 'manage_options' ) ) {
+		return false;
+	}
+
+	global $wpdb;
+	$now = current_time( 'mysql' );
+
+	$points_today = intval( $wpdb->get_var( $wpdb->prepare(
+		"SELECT SUM(points_awarded) FROM {$wpdb->prefix}smpt_point_log
+		 WHERE user_id = %d AND created_at > DATE_SUB(%s, INTERVAL 24 HOUR)",
+		$user_id, $now
+	) ) ?: 0 );
+
+	return $points_today >= 50;
+}
+
+/**
+ * Award points to user for an action.
+ *
+ * Uses the throttle table to prevent duplicate awards for the same
+ * user + context + action combination (idempotent per episode/post).
+ *
+ * @param int    $user_id    User ID.
+ * @param string $action     Action type (comment, rate, like, dislike).
+ * @param int    $context_id Episode ID or post ID.
+ * @return bool|int Points awarded (false if capped or already awarded).
+ */
+function smpt_ep_award_points( $user_id, $action, $context_id = 0 ) {
+	if ( $user_id <= 0 ) {
+		return false; // Only logged-in users earn points.
+	}
+
+	// Check daily cap.
+	if ( smpt_ep_check_daily_point_cap( $user_id ) ) {
+		return false; // Cap reached.
+	}
+
+	$points = smpt_ep_get_point_value( $action );
+	if ( $points <= 0 ) {
+		return false;
+	}
+
+	global $wpdb;
+	$now = current_time( 'mysql' );
+
+	// Throttle: prevent duplicate points for same user + context + action.
+	// INSERT IGNORE returns rows_affected=0 if the UNIQUE key already existed.
+	if ( in_array( $action, array( 'like', 'dislike', 'rate' ), true ) ) {
+		$wpdb->query( $wpdb->prepare(
+			"INSERT IGNORE INTO {$wpdb->prefix}smpt_interaction_throttle
+			 (user_id, episode_id, action_type, last_action_at)
+			 VALUES (%d, %d, %s, %s)",
+			$user_id, $context_id, $action, $now
+		) );
+
+		if ( 0 === $wpdb->rows_affected ) {
+			return false; // Already awarded for this episode + action.
+		}
+	}
+
+	// Add to point log.
+	$wpdb->insert(
+		$wpdb->prefix . 'smpt_point_log',
+		array(
+			'user_id'        => $user_id,
+			'action'         => $action,
+			'points_awarded' => $points,
+			'context_id'     => $context_id,
+			'created_at'     => $now,
+		),
+		array( '%d', '%s', '%d', '%d', '%s' )
+	);
+
+	// Update total points.
+	$wpdb->query( $wpdb->prepare(
+		"INSERT INTO {$wpdb->prefix}smpt_user_points (user_id, total_points, current_tier, created_at, updated_at)
+		 VALUES (%d, %d, 0, %s, %s)
+		 ON DUPLICATE KEY UPDATE
+		 total_points = total_points + %d,
+		 current_tier = (
+		 	CASE
+		 		WHEN total_points + %d < 40 THEN 0
+		 		WHEN total_points + %d < 80 THEN 1
+		 		WHEN total_points + %d < 120 THEN 2
+		 		WHEN total_points + %d < 160 THEN 3
+		 		ELSE 4
+		 	END
+		 ),
+		 updated_at = %s",
+		$user_id, $points, $now, $now, $points, $points, $points, $points, $points, $now
+	) );
+
+	return $points;
+}
+
+/**
+ * Increment view count for today
+ *
+ * @param int $user_id User ID (0 for logged-out)
+ * @return bool Success
+ */
+function smpt_ep_increment_view_count( $user_id ) {
+	global $wpdb;
+
+	if ( $user_id > 0 ) {
+		// Logged-in user
+		$today = gmdate( 'Y-m-d' );
+		$wpdb->query( $wpdb->prepare(
+			"INSERT INTO {$wpdb->prefix}smpt_user_points (user_id, views_today, last_view_date, created_at, updated_at)
+			 VALUES (%d, 1, %s, NOW(), NOW())
+			 ON DUPLICATE KEY UPDATE
+			 views_today = IF(last_view_date = %s, views_today + 1, 1),
+			 last_view_date = %s,
+			 updated_at = NOW()",
+			$user_id, $today, $today, $today
+		) );
+		return true;
+	} else {
+		// Logged-out user (would be tracked via transient/cookie in JS, not backend)
+		return true;
+	}
+}
+
+/**
+ * Check if user can view/download an episode
+ *
+ * @param int $user_id User ID (0 for logged-out)
+ * @return array [ 'allowed' => bool, 'views_today' => int, 'limit' => int, 'message' => string ]
+ */
+function smpt_ep_check_view_allowed( $user_id ) {
+	// Admins always allowed
+	if ( $user_id > 0 && user_can( $user_id, 'manage_options' ) ) {
+		return array(
+			'allowed'      => true,
+			'views_today'  => 0,
+			'limit'        => 999,
+			'message'      => '',
+			'seconds_until_reset' => 0,
+		);
+	}
+
+	global $wpdb;
+
+	if ( $user_id > 0 ) {
+		// Logged-in user — fetch views + points in one query to derive tier limit inline.
+		$today = gmdate( 'Y-m-d' );
+		$row = $wpdb->get_row( $wpdb->prepare(
+			"SELECT views_today, last_view_date, total_points FROM {$wpdb->prefix}smpt_user_points WHERE user_id = %d",
+			$user_id
+		) );
+
+		$views_today  = 0;
+		$total_points = $row ? intval( $row->total_points ) : 0;
+
+		if ( $row && $row->last_view_date === $today ) {
+			$views_today = intval( $row->views_today );
+		}
+
+		// Compute daily limit from points without a second DB query.
+		$tier_limits = array( 3, 5, 7, 10, 15 );
+		$tier = $total_points < 40 ? 0 : ( $total_points < 80 ? 1 : ( $total_points < 120 ? 2 : ( $total_points < 160 ? 3 : 4 ) ) );
+		$limit = $tier_limits[ $tier ];
+		$allowed = $views_today < $limit;
+
+		if ( ! $allowed ) {
+			// Calculate time until reset (next midnight UTC)
+			$now = time();
+			$tomorrow = strtotime( '+1 day', strtotime( gmdate( 'Y-m-d' ) ) );
+			$seconds_until = $tomorrow - $now;
+
+			return array(
+				'allowed'            => false,
+				'views_today'        => $views_today,
+				'limit'              => $limit,
+				'message'            => sprintf(
+					__( 'Limite diário atingido (%d/%d). Volta em %d horas.', 'generatepress' ),
+					$views_today,
+					$limit,
+					ceil( $seconds_until / 3600 )
+				),
+				'seconds_until_reset' => $seconds_until,
+			);
+		}
+
+		return array(
+			'allowed'             => true,
+			'views_today'         => $views_today,
+			'limit'               => $limit,
+			'message'             => '',
+			'seconds_until_reset' => 0,
+		);
+	} else {
+		// Logged-out user (2 per day) - tracked on frontend via transient/cookie
+		return array(
+			'allowed'             => true,
+			'views_today'         => 0,
+			'limit'               => 2,
+			'message'             => '',
+			'seconds_until_reset' => 0,
+		);
+	}
+}
+
+/**
+ * Get user's points dashboard data
+ *
+ * @param int $user_id User ID
+ * @return array Points, tier, progress data
+ */
+function smpt_ep_get_user_points_data( $user_id ) {
+	global $wpdb;
+
+	$row = $wpdb->get_row( $wpdb->prepare(
+		"SELECT total_points, current_tier FROM {$wpdb->prefix}smpt_user_points WHERE user_id = %d",
+		$user_id
+	) );
+
+	// Tier thresholds and names (defined once, used for both branches).
+	$tier_thresholds = array( 0, 40, 80, 120, 160 );
+	$tier_names = array(
+		'Membro',
+		'Temporada Clássica',
+		'Temporada R',
+		'Temporada S',
+		'SuperS',
+	);
+	$tier_limits = array( 3, 5, 7, 10, 15 );
+
+	if ( ! $row ) {
+		return array(
+			'total_points'      => 0,
+			'current_tier'      => 0,
+			'tier_name'         => $tier_names[0],
+			'next_tier_name'    => $tier_names[1],
+			'current_threshold' => 0,
+			'next_threshold'    => 40,
+			'progress'          => 0,
+			'progress_needed'   => 40,
+			'progress_percent'  => 0,
+			'daily_limit'       => $tier_limits[0],
+		);
+	}
+
+	$total = intval( $row->total_points );
+	$tier = intval( $row->current_tier );
+
+	$current_threshold = $tier_thresholds[ $tier ];
+	$next_threshold = isset( $tier_thresholds[ $tier + 1 ] ) ? $tier_thresholds[ $tier + 1 ] : 200;
+
+	$is_max = ( $tier >= 4 );
+	$range  = $next_threshold - $current_threshold;
+	$pct    = $range > 0 ? round( ( ( $total - $current_threshold ) / $range ) * 100 ) : 100;
+
+	return array(
+		'total_points'      => $total,
+		'current_tier'      => $tier,
+		'tier_name'         => isset( $tier_names[ $tier ] ) ? $tier_names[ $tier ] : 'SuperS',
+		'next_tier_name'    => $is_max ? '' : ( isset( $tier_names[ $tier + 1 ] ) ? $tier_names[ $tier + 1 ] : '' ),
+		'current_threshold' => $current_threshold,
+		'next_threshold'    => $next_threshold,
+		'progress'          => $total - $current_threshold,
+		'progress_needed'   => max( 0, $next_threshold - $total ),
+		'progress_percent'  => min( 100, $pct ),
+		'daily_limit'       => isset( $tier_limits[ $tier ] ) ? $tier_limits[ $tier ] : 15,
+	);
+}
+
+/* =========================================================================
    REST API endpoints
    ========================================================================= */
 
@@ -761,8 +1566,171 @@ function smpt_ep_register_routes() {
 		'callback'            => 'smpt_ep_rest_sync',
 		'permission_callback' => '__return_true',
 	) );
+
+	// View status endpoint (check if user can stream/download).
+	register_rest_route( 'smpt/v1', '/ep-view-status', array(
+		'methods'             => 'GET',
+		'callback'            => 'smpt_ep_rest_view_status',
+		'permission_callback' => '__return_true',
+	) );
+
+	// Record view endpoint (increment view count when user streams/downloads).
+	register_rest_route( 'smpt/v1', '/ep-record-view', array(
+		'methods'             => 'POST',
+		'callback'            => 'smpt_ep_rest_record_view',
+		'permission_callback' => '__return_true',
+	) );
 }
 add_action( 'rest_api_init', 'smpt_ep_register_routes' );
+
+/* =========================================================================
+   Comment Hooks for Point Awards (posts, pages, guestbook)
+   ========================================================================= */
+
+/**
+ * Award points when a logged-in user posts an approved comment on a
+ * post, page, or via the Gwolle Guestbook plugin.
+ *
+ * Uses comment_post (fires once at insert time) instead of
+ * wp_insert_comment to avoid double-firing on status transitions.
+ *
+ * @param int        $comment_id       Comment ID.
+ * @param int|string $comment_approved 1 if approved, 0 if held, 'spam' if spam.
+ */
+function smpt_ep_award_points_on_wp_comment( $comment_id, $comment_approved ) {
+	// Only award for approved comments.
+	if ( 1 !== (int) $comment_approved ) {
+		return;
+	}
+
+	$comment = get_comment( $comment_id );
+	if ( ! $comment || ! $comment->user_id || $comment->user_id <= 0 ) {
+		return; // Only logged-in users earn points.
+	}
+
+	// Check the post type — allow posts, pages, and gwolle guestbook.
+	$post = get_post( $comment->comment_post_ID );
+	if ( ! $post ) {
+		return;
+	}
+
+	$allowed_types = array( 'post', 'page', 'gwolle_gb' );
+	if ( ! in_array( $post->post_type, $allowed_types, true ) ) {
+		return;
+	}
+
+	smpt_ep_award_points( $comment->user_id, 'comment', $comment->comment_post_ID );
+}
+add_action( 'comment_post', 'smpt_ep_award_points_on_wp_comment', 10, 2 );
+
+/**
+ * Handle GET /smpt/v1/ep-view-status — check if user can view/download.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return WP_REST_Response
+ */
+function smpt_ep_rest_view_status( WP_REST_Request $request ) {
+	$user_id = get_current_user_id();
+	$status = smpt_ep_check_view_allowed( $user_id );
+	return new WP_REST_Response( $status );
+}
+
+/**
+ * Handle POST /smpt/v1/ep-record-view — increment view count.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return WP_REST_Response
+ */
+function smpt_ep_rest_record_view( WP_REST_Request $request ) {
+	$user_id = get_current_user_id();
+	$ep_id   = absint( $request->get_param( 'episode_id' ) );
+
+	if ( $ep_id < 1 || $ep_id > 200 ) {
+		return new WP_REST_Response( array( 'ok' => false, 'error' => 'invalid_episode' ), 400 );
+	}
+
+	// Check if view is allowed
+	$status = smpt_ep_check_view_allowed( $user_id );
+	if ( ! $status['allowed'] ) {
+		return new WP_REST_Response( array(
+			'ok'       => false,
+			'error'    => 'view_limit_exceeded',
+			'status'   => $status,
+		), 403 );
+	}
+
+	// Increment view count
+	smpt_ep_increment_view_count( $user_id );
+
+	return new WP_REST_Response( array( 'ok' => true ) );
+}
+
+/**
+ * Get the real client IP, respecting common proxy headers.
+ *
+ * @return string Client IP address.
+ */
+function smpt_ep_get_client_ip() {
+	foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR' ) as $key ) {
+		if ( ! empty( $_SERVER[ $key ] ) ) {
+			$ip = $_SERVER[ $key ];
+			if ( 'HTTP_X_FORWARDED_FOR' === $key ) {
+				$ip = explode( ',', $ip )[0];
+			}
+			$ip = trim( $ip );
+			if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+				return $ip;
+			}
+		}
+	}
+	return '0.0.0.0';
+}
+
+/**
+ * Anti-abuse gate for anonymous interactions.
+ * - Honeypot: rejects if the invisible `website` field is filled (bots).
+ * - Rate limit: max 15 interactions per 60 s per IP.
+ * - Min delay: at least 2 s between consecutive requests per IP.
+ *
+ * Logged-in users bypass all checks.
+ *
+ * @param array $body  Decoded request body.
+ * @param int   $user_id Current user ID.
+ * @return WP_REST_Response|true  True if allowed, WP_REST_Response error otherwise.
+ */
+function smpt_ep_anti_abuse_gate( $body, $user_id ) {
+	if ( $user_id > 0 ) {
+		return true;
+	}
+
+	// --- Honeypot: bots fill the invisible "website" field ---
+	if ( ! empty( $body['website'] ) ) {
+		// Silently accept so bots think it worked, but do nothing.
+		return new WP_REST_Response( array( 'ok' => true, 'counters' => array() ), 200 );
+	}
+
+	$ip       = smpt_ep_get_client_ip();
+	$ip_hash  = md5( 'smpt_rl_' . $ip );
+
+	// --- Rate limit: max 15 interactions per 60 s ---
+	$count_key = 'smpt_rl_cnt_' . $ip_hash;
+	$count     = (int) get_transient( $count_key );
+	if ( $count >= 15 ) {
+		return new WP_REST_Response( array( 'ok' => false, 'error' => 'rate_limited' ), 429 );
+	}
+	set_transient( $count_key, $count + 1, 60 );
+
+	// --- Min delay: 2 s between requests ---
+	$ts_key  = 'smpt_rl_ts_' . $ip_hash;
+	$last_ts = get_transient( $ts_key );
+	$now     = microtime( true );
+	if ( false !== $last_ts && ( $now - (float) $last_ts ) < 2.0 ) {
+		return new WP_REST_Response( array( 'ok' => false, 'error' => 'too_fast' ), 429 );
+	}
+	set_transient( $ts_key, $now, 60 );
+
+	return true;
+}
 
 /**
  * Handle POST /smpt/v1/ep-interact — unified interaction endpoint.
@@ -776,27 +1744,36 @@ function smpt_ep_rest_interact( WP_REST_Request $request ) {
 		return new WP_REST_Response( array( 'ok' => false, 'error' => 'invalid_body' ), 400 );
 	}
 
+	$user_id = get_current_user_id();
+
+	// Anti-abuse checks for anonymous users.
+	$gate = smpt_ep_anti_abuse_gate( $body, $user_id );
+	if ( true !== $gate ) {
+		return $gate;
+	}
+
 	$ep_id      = isset( $body['episode_id'] ) ? absint( $body['episode_id'] ) : 0;
 	$action     = isset( $body['action'] ) ? sanitize_text_field( $body['action'] ) : '';
 	$anon_uuid  = isset( $body['anon_uuid'] ) ? sanitize_text_field( $body['anon_uuid'] ) : '';
-	$user_id    = get_current_user_id();
 
-	if ( $ep_id < 1 || $ep_id > 200 ) {
+	// Comment-level actions don't require a valid episode_id.
+	$comment_only_actions = array( 'edit_comment', 'delete_comment' );
+	if ( ! in_array( $action, $comment_only_actions, true ) && ( $ep_id < 1 || $ep_id > 200 ) ) {
 		return new WP_REST_Response( array( 'ok' => false, 'error' => 'invalid_episode' ), 400 );
 	}
 
-	$valid_actions = array( 'like', 'remove_like', 'dislike', 'remove_dislike', 'rate', 'remove_rate', 'watched', 'remove_watched', 'comment' );
+	$valid_actions = array( 'like', 'remove_like', 'dislike', 'remove_dislike', 'rate', 'remove_rate', 'watched', 'remove_watched', 'want_watch', 'remove_want_watch', 'favorite', 'remove_favorite', 'comment', 'edit_comment', 'delete_comment' );
 	if ( ! in_array( $action, $valid_actions, true ) ) {
 		return new WP_REST_Response( array( 'ok' => false, 'error' => 'invalid_action' ), 400 );
 	}
 
-	// Watched requires login.
-	if ( in_array( $action, array( 'watched', 'remove_watched' ), true ) && $user_id <= 0 ) {
+	// Login-only actions.
+	if ( in_array( $action, array( 'watched', 'remove_watched', 'want_watch', 'remove_want_watch', 'favorite', 'remove_favorite' ), true ) && $user_id <= 0 ) {
 		return new WP_REST_Response( array( 'ok' => false, 'error' => 'login_required' ), 403 );
 	}
 
-	// Anon users must provide UUID.
-	if ( $user_id <= 0 && '' === $anon_uuid ) {
+	// Anon users must provide UUID (except for comment edit/delete which identifies by comment_id).
+	if ( $user_id <= 0 && '' === $anon_uuid && ! in_array( $action, $comment_only_actions, true ) ) {
 		return new WP_REST_Response( array( 'ok' => false, 'error' => 'anon_uuid_required' ), 400 );
 	}
 
@@ -808,6 +1785,10 @@ function smpt_ep_rest_interact( WP_REST_Request $request ) {
 		case 'dislike':
 		case 'remove_dislike':
 			$result = smpt_ep_set_reaction( $ep_id, $user_id, $anon_uuid, $action );
+			// Award points for new like/dislike (not remove actions)
+			if ( $result && in_array( $action, array( 'like', 'dislike' ), true ) ) {
+				smpt_ep_award_points( $user_id, $action, $ep_id );
+			}
 			break;
 
 		case 'rate':
@@ -816,6 +1797,8 @@ function smpt_ep_rest_interact( WP_REST_Request $request ) {
 			if ( false === $result ) {
 				return new WP_REST_Response( array( 'ok' => false, 'error' => 'invalid_rating' ), 400 );
 			}
+			// Award points for rating
+			smpt_ep_award_points( $user_id, 'rate', $ep_id );
 			break;
 
 		case 'remove_rate':
@@ -830,17 +1813,101 @@ function smpt_ep_rest_interact( WP_REST_Request $request ) {
 			$result = smpt_ep_remove_watched( $ep_id, $user_id );
 			break;
 
+		case 'want_watch':
+			$result = smpt_ep_set_want( $ep_id, $user_id );
+			break;
+
+		case 'remove_want_watch':
+			$result = smpt_ep_remove_want( $ep_id, $user_id );
+			break;
+
+		case 'favorite':
+			$result = smpt_ep_set_favorite( $ep_id, $user_id );
+			break;
+
+		case 'remove_favorite':
+			$result = smpt_ep_remove_favorite( $ep_id, $user_id );
+			break;
+
 		case 'comment':
 			$author_name  = isset( $body['author_name'] ) ? sanitize_text_field( $body['author_name'] ) : '';
+			$author_email = isset( $body['author_email'] ) ? sanitize_email( $body['author_email'] ) : '';
 			$comment_text = isset( $body['comment_text'] ) ? sanitize_textarea_field( $body['comment_text'] ) : '';
 			if ( '' === $comment_text ) {
 				return new WP_REST_Response( array( 'ok' => false, 'error' => 'empty_comment' ), 400 );
 			}
-			$result = smpt_ep_add_comment( $ep_id, $user_id, $anon_uuid, $author_name, $comment_text );
+
+			// reCAPTCHA v3 check (anon only).
+			if ( $user_id <= 0 && function_exists( 'smpt_recaptcha_verify' ) ) {
+				$recap_token = isset( $body['recaptcha_token'] ) ? sanitize_text_field( $body['recaptcha_token'] ) : '';
+				if ( ! smpt_recaptcha_verify( $recap_token, 'ep_comment' ) ) {
+					return new WP_REST_Response( array( 'ok' => false, 'error' => 'captcha_failed' ), 403 );
+				}
+			}
+
+			// Akismet spam check.
+			if ( function_exists( 'smpt_akismet_is_spam' ) && smpt_akismet_is_spam( $author_name, $author_email, $comment_text ) ) {
+				return new WP_REST_Response( array( 'ok' => false, 'error' => 'spam_detected' ), 403 );
+			}
+
+			// Profanity filter.
+			if ( function_exists( 'smpt_profanity_filter' ) ) {
+				$filtered = smpt_profanity_filter( $comment_text );
+				if ( false === $filtered ) {
+					return new WP_REST_Response( array( 'ok' => false, 'error' => 'profanity_blocked' ), 403 );
+				}
+				$comment_text = $filtered;
+			}
+
+			$result = smpt_ep_add_comment( $ep_id, $user_id, $anon_uuid, $author_name, $comment_text, $author_email );
 			if ( false === $result ) {
 				return new WP_REST_Response( array( 'ok' => false, 'error' => 'comment_failed' ), 500 );
 			}
+			// Award points for comment
+			smpt_ep_award_points( $user_id, 'comment', $ep_id );
 			break;
+
+		case 'edit_comment':
+			$comment_id   = isset( $body['comment_id'] ) ? absint( $body['comment_id'] ) : 0;
+			$comment_text = isset( $body['comment_text'] ) ? sanitize_textarea_field( $body['comment_text'] ) : '';
+			if ( ! $comment_id || '' === $comment_text ) {
+				return new WP_REST_Response( array( 'ok' => false, 'error' => 'invalid_params' ), 400 );
+			}
+
+			// Profanity filter on edits too.
+			if ( function_exists( 'smpt_profanity_filter' ) ) {
+				$filtered = smpt_profanity_filter( $comment_text );
+				if ( false === $filtered ) {
+					return new WP_REST_Response( array( 'ok' => false, 'error' => 'profanity_blocked' ), 403 );
+				}
+				$comment_text = $filtered;
+			}
+
+			$edit_result = smpt_ep_edit_comment( $comment_id, $user_id, $anon_uuid, $comment_text );
+			if ( true !== $edit_result ) {
+				$status = 'expired' === $edit_result ? 403 : ( 'forbidden' === $edit_result ? 403 : 404 );
+				return new WP_REST_Response( array( 'ok' => false, 'error' => $edit_result ), $status );
+			}
+			return new WP_REST_Response( array( 'ok' => true ) );
+
+		case 'delete_comment':
+			$comment_id  = isset( $body['comment_id'] ) ? absint( $body['comment_id'] ) : 0;
+			if ( ! $comment_id ) {
+				return new WP_REST_Response( array( 'ok' => false, 'error' => 'invalid_params' ), 400 );
+			}
+			$del_result = smpt_ep_delete_comment( $comment_id, $user_id, $anon_uuid );
+			if ( true !== $del_result ) {
+				$status = 'forbidden' === $del_result ? 403 : 404;
+				return new WP_REST_Response( array( 'ok' => false, 'error' => $del_result ), $status );
+			}
+			// Return updated comment counter for the episode.
+			$counters = smpt_ep_get_batch_counters( array( $ep_id ) );
+			$cap_reached = $user_id > 0 && smpt_ep_check_daily_point_cap( $user_id );
+			return new WP_REST_Response( array(
+				'ok'          => true,
+				'counters'    => isset( $counters[ $ep_id ] ) ? $counters[ $ep_id ] : array(),
+				'cap_reached' => $cap_reached,
+			) );
 	}
 
 	// Return updated counters and user state.
@@ -848,10 +1915,14 @@ function smpt_ep_rest_interact( WP_REST_Request $request ) {
 	$actor    = smpt_ep_resolve_actor( $user_id, $anon_uuid );
 	$states   = smpt_ep_get_user_states( $actor, array( $ep_id ) );
 
+	// Check if point cap is reached
+	$cap_reached = $user_id > 0 && smpt_ep_check_daily_point_cap( $user_id );
+
 	return new WP_REST_Response( array(
-		'ok'       => true,
-		'counters' => isset( $counters[ $ep_id ] ) ? $counters[ $ep_id ] : array(),
-		'state'    => isset( $states[ $ep_id ] ) ? $states[ $ep_id ] : array(),
+		'ok'          => true,
+		'counters'    => isset( $counters[ $ep_id ] ) ? $counters[ $ep_id ] : array(),
+		'state'       => isset( $states[ $ep_id ] ) ? $states[ $ep_id ] : array(),
+		'cap_reached' => $cap_reached,
 	) );
 }
 
@@ -919,7 +1990,13 @@ function smpt_ep_rest_comments( WP_REST_Request $request ) {
 		$per_page = 20;
 	}
 
-	$data = smpt_ep_get_comments( $ep_id, $page, $per_page );
+	$user_id   = get_current_user_id();
+	$anon_uuid = sanitize_text_field( $request->get_param( 'anon_uuid' ) );
+	$actor     = ( $user_id > 0 || '' !== $anon_uuid )
+		? smpt_ep_resolve_actor( $user_id, $anon_uuid )
+		: null;
+
+	$data = smpt_ep_get_comments( $ep_id, $page, $per_page, $actor );
 
 	return new WP_REST_Response( array(
 		'ok'       => true,

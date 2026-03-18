@@ -208,6 +208,10 @@ Before adding new CSS, agents must:
 - Reproduce with Playwright when possible.
 - Use DevTools for frontend/runtime/layout diagnosis.
 - Check `wp-content/debug.log` and related PHP logs for backend/runtime issues.
+- Keep Xdebug enabled in trigger mode, not always-on mode.
+- Default Xdebug behavior for this project must be `xdebug.start_with_request=trigger`.
+- When a specific request needs debugger attachment, trigger only that request, for example via `?XDEBUG_TRIGGER=1`, an IDE/browser extension, cookie, or header.
+- Do not leave Xdebug configured to attach to every request unless there is a temporary, explicit reason and it is reverted after the debugging session.
 - Do not guess when runtime evidence is available.
 - Do not add instrumentation before checking whether existing logs, browser evidence, or current markup already explain the issue.
 - For CSS/layout bugs, inspect DOM, computed styles, and cascade before writing new rules.
@@ -278,7 +282,7 @@ Portable setup on each machine from project root:
 
 ```bash
 npm run test:smpt:setup
-````
+```
 
 Run tests:
 

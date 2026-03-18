@@ -440,6 +440,266 @@ function smpt_analytics_merge_period_rankings( $limit, $ascending, ...$row_sets 
 }
 
 /**
+ * Format a normalized episode label for dashboard charts.
+ *
+ * @param int $episode_num Episode number.
+ * @return string
+ */
+function smpt_analytics_format_episode_label( $episode_num ) {
+	return sprintf( 'Episode %03d', (int) $episode_num );
+}
+
+/**
+ * Normalize raw analytics item IDs into episode-level buckets.
+ *
+ * @param string $event_type Analytics event type.
+ * @param string $item_id    Analytics item ID.
+ * @return array<string, int|string>|null
+ */
+function smpt_analytics_normalize_episode_item( $event_type, $item_id ) {
+	$event_type = trim( (string) $event_type );
+	$item_id    = trim( (string) $item_id );
+
+	if ( '' === $event_type || '' === $item_id ) {
+		return null;
+	}
+
+	if ( 'stream' === $event_type && preg_match( '/^episodio_(\d+)$/', $item_id, $matches ) ) {
+		$episode_num = (int) $matches[1];
+
+		return array(
+			'episode_num' => $episode_num,
+			'metric_key'  => 'streams',
+			'raw_key'     => 'remaster_streams',
+		);
+	}
+
+	if ( 'nostalgia_play' === $event_type && preg_match( '/^nostalgia_ep_(\d+)$/', $item_id, $matches ) ) {
+		$episode_num = (int) $matches[1];
+
+		return array(
+			'episode_num' => $episode_num,
+			'metric_key'  => 'streams',
+			'raw_key'     => 'nostalgia_streams',
+		);
+	}
+
+	if ( 'download' === $event_type && preg_match( '/^download_ep(\d+)_(av1|h264|mp4)$/', $item_id, $matches ) ) {
+		$episode_num = (int) $matches[1];
+		$variant     = strtolower( $matches[2] );
+
+		return array(
+			'episode_num' => $episode_num,
+			'metric_key'  => 'downloads',
+			'raw_key'     => 'h264' === $variant ? 'download_h264' : 'download_av1',
+		);
+	}
+
+	return null;
+}
+
+/**
+ * Aggregate normalized episode totals from item-level analytics rows.
+ *
+ * @param array ...$row_sets Query rows with event_type, item_id, and cnt fields.
+ * @return array<int, array<string, int|string>>
+ */
+function smpt_analytics_collect_episode_totals( ...$row_sets ) {
+	$episodes = array();
+
+	foreach ( $row_sets as $rows ) {
+		foreach ( $rows as $row ) {
+			$event_type = isset( $row->event_type ) ? (string) $row->event_type : '';
+			$item_id    = isset( $row->item_id ) ? (string) $row->item_id : '';
+			$count      = isset( $row->cnt ) ? (int) $row->cnt : 0;
+
+			if ( $count <= 0 ) {
+				continue;
+			}
+
+			$normalized = smpt_analytics_normalize_episode_item( $event_type, $item_id );
+			if ( ! $normalized ) {
+				continue;
+			}
+
+			$episode_num = (int) $normalized['episode_num'];
+			$metric_key  = (string) $normalized['metric_key'];
+			$raw_key     = (string) $normalized['raw_key'];
+
+			if ( ! isset( $episodes[ $episode_num ] ) ) {
+				$episodes[ $episode_num ] = array(
+					'episode_num'        => $episode_num,
+					'label'              => smpt_analytics_format_episode_label( $episode_num ),
+					'streams'            => 0,
+					'remaster_streams'   => 0,
+					'nostalgia_streams'  => 0,
+					'downloads'          => 0,
+					'download_av1'       => 0,
+					'download_h264'      => 0,
+				);
+			}
+
+			$episodes[ $episode_num ][ $metric_key ] += $count;
+			$episodes[ $episode_num ][ $raw_key ]    += $count;
+		}
+	}
+
+	ksort( $episodes, SORT_NUMERIC );
+
+	return $episodes;
+}
+
+/**
+ * Aggregate normalized episode totals per period from raw analytics rows.
+ *
+ * @param array ...$row_sets Query rows with period_label, event_type, item_id, and cnt fields.
+ * @return array<string, array<string, int|string>>
+ */
+function smpt_analytics_collect_episode_period_totals( ...$row_sets ) {
+	$periods = array();
+
+	foreach ( $row_sets as $rows ) {
+		foreach ( $rows as $row ) {
+			$label      = isset( $row->period_label ) ? trim( (string) $row->period_label ) : '';
+			$event_type = isset( $row->event_type ) ? (string) $row->event_type : '';
+			$item_id    = isset( $row->item_id ) ? (string) $row->item_id : '';
+			$count      = isset( $row->cnt ) ? (int) $row->cnt : 0;
+
+			if ( '' === $label || $count <= 0 ) {
+				continue;
+			}
+
+			if ( ! smpt_analytics_normalize_episode_item( $event_type, $item_id ) ) {
+				continue;
+			}
+
+			if ( ! isset( $periods[ $label ] ) ) {
+				$periods[ $label ] = array(
+					'label'      => $label,
+					'streams'    => 0,
+					'downloads'  => 0,
+				);
+			}
+
+			if ( 'download' === $event_type ) {
+				$periods[ $label ]['downloads'] += $count;
+			} else {
+				$periods[ $label ]['streams'] += $count;
+			}
+		}
+	}
+
+	ksort( $periods, SORT_STRING );
+
+	return $periods;
+}
+
+/**
+ * Sum a normalized episode metric across all episodes.
+ *
+ * @param array  $totals     Normalized episode totals.
+ * @param string $metric_key Metric key to sum.
+ * @return int
+ */
+function smpt_analytics_sum_episode_metric( array $totals, $metric_key ) {
+	$sum = 0;
+
+	foreach ( $totals as $row ) {
+		$sum += isset( $row[ $metric_key ] ) ? (int) $row[ $metric_key ] : 0;
+	}
+
+	return $sum;
+}
+
+/**
+ * Rank normalized episode totals for a specific metric.
+ *
+ * @param int    $limit      Number of rows to return.
+ * @param bool   $ascending  Whether to sort ascending.
+ * @param array  $totals     Normalized episode totals.
+ * @param string $metric_key Metric key to rank.
+ * @return array<int, array<string, int|string>>
+ */
+function smpt_analytics_rank_episode_totals( $limit, $ascending, array $totals, $metric_key ) {
+	$counts = array();
+	$labels = array();
+
+	foreach ( $totals as $episode_num => $row ) {
+		$count = isset( $row[ $metric_key ] ) ? (int) $row[ $metric_key ] : 0;
+
+		if ( $count <= 0 ) {
+			continue;
+		}
+
+		$counts[ $episode_num ] = $count;
+		$labels[ $episode_num ] = isset( $row['label'] ) ? (string) $row['label'] : smpt_analytics_format_episode_label( $episode_num );
+	}
+
+	if ( $ascending ) {
+		asort( $counts, SORT_NUMERIC );
+	} else {
+		arsort( $counts, SORT_NUMERIC );
+	}
+
+	if ( (int) $limit > 0 ) {
+		$counts = array_slice( $counts, 0, (int) $limit, true );
+	}
+
+	$results = array();
+	foreach ( $counts as $episode_num => $count ) {
+		$results[] = array(
+			'label' => $labels[ $episode_num ] ?? smpt_analytics_format_episode_label( $episode_num ),
+			'count' => (int) $count,
+		);
+	}
+
+	return $results;
+}
+
+/**
+ * Rank normalized per-period totals for a specific metric.
+ *
+ * @param int    $limit      Number of rows to return.
+ * @param bool   $ascending  Whether to sort ascending.
+ * @param array  $totals     Normalized period totals.
+ * @param string $metric_key Metric key to rank.
+ * @return array<int, array<string, int|string>>
+ */
+function smpt_analytics_rank_period_totals( $limit, $ascending, array $totals, $metric_key ) {
+	$counts = array();
+
+	foreach ( $totals as $label => $row ) {
+		$count = isset( $row[ $metric_key ] ) ? (int) $row[ $metric_key ] : 0;
+
+		if ( $count <= 0 ) {
+			continue;
+		}
+
+		$counts[ $label ] = $count;
+	}
+
+	if ( $ascending ) {
+		asort( $counts, SORT_NUMERIC );
+	} else {
+		arsort( $counts, SORT_NUMERIC );
+	}
+
+	if ( (int) $limit > 0 ) {
+		$counts = array_slice( $counts, 0, (int) $limit, true );
+	}
+
+	$results = array();
+	foreach ( $counts as $label => $count ) {
+		$results[] = array(
+			'label' => (string) $label,
+			'count' => (int) $count,
+		);
+	}
+
+	return $results;
+}
+
+/**
  * Prepare a SQL statement using an argument array.
  *
  * @param wpdb  $wpdb   WordPress DB handle.
@@ -461,6 +721,15 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 	global $wpdb;
 
 	$period = $request->get_param( 'period' );
+
+	// Cache all queries for 5 minutes per period. "today" caches for 1 minute.
+	$cache_ttl = ( 'today' === $period ) ? MINUTE_IN_SECONDS : 5 * MINUTE_IN_SECONDS;
+	$cache_key = 'smpt_stats_' . md5( $period );
+	$cached    = get_transient( $cache_key );
+	if ( false !== $cached ) {
+		return new WP_REST_Response( $cached );
+	}
+
 	$range  = smpt_analytics_period_range( $period );
 	$start  = $range['start'];
 	$end    = $range['end'];
@@ -492,7 +761,6 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		$ga_start, $ga_end
 	) );
 	$event_totals = smpt_analytics_merge_event_totals( $event_totals, $ga_event_totals_raw );
-	$manga_total  = ( $event_totals['manga_view'] ?? 0 ) + ( $event_totals['manga_download'] ?? 0 );
 
 	$build_event_type_placeholders = static function ( array $event_types ) {
 		return implode( ', ', array_fill( 0, count( $event_types ), '%s' ) );
@@ -500,22 +768,22 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 
 	$get_local_item_rows = static function ( array $event_types ) use ( $wpdb, $ev, $start, $end, $build_event_type_placeholders ) {
 		$placeholders = $build_event_type_placeholders( $event_types );
-		$sql          = "SELECT item_id, COUNT(*) as cnt FROM {$ev}
+		$sql          = "SELECT event_type, item_id, COUNT(*) as cnt FROM {$ev}
 			WHERE created_at BETWEEN %s AND %s
 			AND event_type IN ({$placeholders})
 			AND item_id != ''
-			GROUP BY item_id";
+			GROUP BY event_type, item_id";
 		$args         = array_merge( array( $start, $end ), $event_types );
 		return $wpdb->get_results( smpt_analytics_prepare_sql( $wpdb, $sql, $args ) );
 	};
 
 	$get_ga_item_rows = static function ( array $event_types ) use ( $wpdb, $ga, $ga_start, $ga_end, $build_event_type_placeholders ) {
 		$placeholders = $build_event_type_placeholders( $event_types );
-		$sql          = "SELECT item_id, SUM(event_count) as cnt FROM {$ga}
+		$sql          = "SELECT event_type, item_id, SUM(event_count) as cnt FROM {$ga}
 			WHERE event_date BETWEEN %s AND %s
 			AND event_type IN ({$placeholders})
 			AND item_id != ''
-			GROUP BY item_id";
+			GROUP BY event_type, item_id";
 		$args         = array_merge( array( $ga_start, $ga_end ), $event_types );
 		return $wpdb->get_results( smpt_analytics_prepare_sql( $wpdb, $sql, $args ) );
 	};
@@ -540,6 +808,40 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		return $wpdb->get_results( smpt_analytics_prepare_sql( $wpdb, $sql, $args ) );
 	};
 
+	$get_local_period_item_rows = static function ( array $event_types ) use ( $wpdb, $ev, $start, $end, $build_event_type_placeholders ) {
+		$placeholders = $build_event_type_placeholders( $event_types );
+		$sql          = "SELECT DATE(created_at) as period_label, event_type, item_id, COUNT(*) as cnt FROM {$ev}
+			WHERE created_at BETWEEN %s AND %s
+			AND event_type IN ({$placeholders})
+			AND item_id != ''
+			GROUP BY DATE(created_at), event_type, item_id";
+		$args         = array_merge( array( $start, $end ), $event_types );
+		return $wpdb->get_results( smpt_analytics_prepare_sql( $wpdb, $sql, $args ) );
+	};
+
+	$get_ga_period_item_rows = static function ( array $event_types ) use ( $wpdb, $ga, $ga_start, $ga_end, $build_event_type_placeholders ) {
+		$placeholders = $build_event_type_placeholders( $event_types );
+		$sql          = "SELECT event_date as period_label, event_type, item_id, SUM(event_count) as cnt FROM {$ga}
+			WHERE event_date BETWEEN %s AND %s
+			AND event_type IN ({$placeholders})
+			AND item_id != ''
+			GROUP BY event_date, event_type, item_id";
+		$args         = array_merge( array( $ga_start, $ga_end ), $event_types );
+		return $wpdb->get_results( smpt_analytics_prepare_sql( $wpdb, $sql, $args ) );
+	};
+
+	$episode_item_rows_local   = $get_local_item_rows( array( 'stream', 'nostalgia_play', 'download' ) );
+	$episode_item_rows_ga      = $get_ga_item_rows( array( 'stream', 'download' ) );
+	$episode_period_rows_local = $get_local_period_item_rows( array( 'stream', 'nostalgia_play', 'download' ) );
+	$episode_period_rows_ga    = $get_ga_period_item_rows( array( 'stream', 'download' ) );
+	$episode_totals            = smpt_analytics_collect_episode_totals( $episode_item_rows_local, $episode_item_rows_ga );
+	$episode_period_totals     = smpt_analytics_collect_episode_period_totals( $episode_period_rows_local, $episode_period_rows_ga );
+	$manga_total               = ( $event_totals['manga_view'] ?? 0 ) + ( $event_totals['manga_download'] ?? 0 );
+	$stream_total              = smpt_analytics_sum_episode_metric( $episode_totals, 'streams' );
+	$download_total            = smpt_analytics_sum_episode_metric( $episode_totals, 'downloads' );
+	$top_streams               = smpt_analytics_rank_episode_totals( 10, false, $episode_totals, 'streams' );
+	$top_downloads             = smpt_analytics_rank_episode_totals( 10, false, $episode_totals, 'downloads' );
+
 	// --- Events over time ---
 	$timeline_raw = $wpdb->get_results( $wpdb->prepare(
 		"SELECT DATE_FORMAT(created_at, %s) as period_label, event_type, COUNT(*) as cnt
@@ -557,34 +859,6 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		) );
 	}
 	$timeline = smpt_analytics_merge_timeline_rows( $timeline_raw, $ga_timeline_raw );
-
-	// --- Top episodes (streams) ---
-	$top_streams = $wpdb->get_results( $wpdb->prepare(
-		"SELECT item_id, COUNT(*) as cnt FROM {$ev}
-		 WHERE event_type = 'stream' AND created_at BETWEEN %s AND %s
-		 GROUP BY item_id ORDER BY cnt DESC LIMIT 10",
-		$start, $end
-	) );
-	$ga_top_streams = $wpdb->get_results( $wpdb->prepare(
-		"SELECT item_id, SUM(event_count) as cnt FROM {$ga}
-		 WHERE event_type = 'stream' AND event_date BETWEEN %s AND %s
-		 GROUP BY item_id ORDER BY cnt DESC LIMIT 25",
-		$ga_start, $ga_end
-	) );
-
-	// --- Top episodes (downloads) ---
-	$top_downloads = $wpdb->get_results( $wpdb->prepare(
-		"SELECT item_id, COUNT(*) as cnt FROM {$ev}
-		 WHERE event_type = 'download' AND created_at BETWEEN %s AND %s
-		 GROUP BY item_id ORDER BY cnt DESC LIMIT 10",
-		$start, $end
-	) );
-	$ga_top_downloads = $wpdb->get_results( $wpdb->prepare(
-		"SELECT item_id, SUM(event_count) as cnt FROM {$ga}
-		 WHERE event_type = 'download' AND event_date BETWEEN %s AND %s
-		 GROUP BY item_id ORDER BY cnt DESC LIMIT 25",
-		$ga_start, $ga_end
-	) );
 
 	// --- Top music ---
 	$top_music = $wpdb->get_results( $wpdb->prepare(
@@ -741,27 +1015,53 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 				),
 			),
 		),
+		'streams'   => array(
+			'title'   => 'Streams',
+			'summary' => sprintf( '%s total episode streams in this period.', number_format_i18n( $stream_total ) ),
+			'cards'   => array(
+				array(
+					'title' => 'Top Streamed Episodes',
+					'items' => smpt_analytics_rank_episode_totals( 5, false, $episode_totals, 'streams' ),
+				),
+				array(
+					'title' => 'Least Streamed Episodes',
+					'items' => smpt_analytics_rank_episode_totals( 5, true, $episode_totals, 'streams' ),
+				),
+				array(
+					'title' => 'Highest Stream Days',
+					'items' => smpt_analytics_rank_period_totals( 5, false, $episode_period_totals, 'streams' ),
+				),
+				array(
+					'title' => 'Lowest Stream Days',
+					'items' => smpt_analytics_rank_period_totals( 5, true, $episode_period_totals, 'streams' ),
+				),
+			),
+		),
+		'downloads' => array(
+			'title'   => 'Downloads',
+			'summary' => sprintf( '%s total episode downloads in this period.', number_format_i18n( $download_total ) ),
+			'cards'   => array(
+				array(
+					'title' => 'Top Downloaded Episodes',
+					'items' => smpt_analytics_rank_episode_totals( 5, false, $episode_totals, 'downloads' ),
+				),
+				array(
+					'title' => 'Least Downloaded Episodes',
+					'items' => smpt_analytics_rank_episode_totals( 5, true, $episode_totals, 'downloads' ),
+				),
+				array(
+					'title' => 'Highest Download Days',
+					'items' => smpt_analytics_rank_period_totals( 5, false, $episode_period_totals, 'downloads' ),
+				),
+				array(
+					'title' => 'Lowest Download Days',
+					'items' => smpt_analytics_rank_period_totals( 5, true, $episode_period_totals, 'downloads' ),
+				),
+			),
+		),
 	);
 
 	$detail_metric_map = array(
-		'streams'   => array(
-			'title'       => 'Streams',
-			'summary'     => sprintf( '%s total streams in this period.', number_format_i18n( $event_totals['stream'] ?? 0 ) ),
-			'event_types' => array( 'stream' ),
-			'top_label'   => 'Top Streamed Items',
-			'low_label'   => 'Least Streamed Items',
-			'peak_label'  => 'Highest Stream Days',
-			'quiet_label' => 'Lowest Stream Days',
-		),
-		'downloads' => array(
-			'title'       => 'Downloads',
-			'summary'     => sprintf( '%s total downloads in this period.', number_format_i18n( $event_totals['download'] ?? 0 ) ),
-			'event_types' => array( 'download' ),
-			'top_label'   => 'Top Downloaded Items',
-			'low_label'   => 'Least Downloaded Items',
-			'peak_label'  => 'Highest Download Days',
-			'quiet_label' => 'Lowest Download Days',
-		),
 		'music'     => array(
 			'title'       => 'Music',
 			'summary'     => sprintf( '%s music streams in this period.', number_format_i18n( $event_totals['music_stream'] ?? 0 ) ),
@@ -821,12 +1121,12 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 		);
 	}
 
-	return new WP_REST_Response( array(
+	$response_data = array(
 		'period'      => $period,
 		'kpis'        => array(
 			'visitors'       => $visitors,
-			'streams'        => $event_totals['stream'] ?? 0,
-			'downloads'      => $event_totals['download'] ?? 0,
+			'streams'        => $stream_total,
+			'downloads'      => $download_total,
 			'music_streams'  => $event_totals['music_stream'] ?? 0,
 			'manga'          => $manga_total,
 			'manga_views'    => $event_totals['manga_view'] ?? 0,
@@ -838,8 +1138,8 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 			'metrics'        => $metric_details,
 		),
 		'timeline'     => $timeline,
-		'top_streams'  => smpt_analytics_merge_item_rankings( 10, $top_streams, $ga_top_streams ),
-		'top_downloads'=> smpt_analytics_merge_item_rankings( 10, $top_downloads, $ga_top_downloads ),
+		'top_streams'  => $top_streams,
+		'top_downloads'=> $top_downloads,
 		'top_music'    => smpt_analytics_merge_item_rankings( 10, $top_music, $ga_top_music ),
 		'funnel'       => $funnel,
 		'countries'    => $format_list( $countries ),
@@ -855,5 +1155,9 @@ function smpt_rest_handle_stats( WP_REST_Request $request ) {
 			'new'       => $new_visitors,
 			'returning' => $returning_visitors,
 		),
-	) );
+	);
+
+	set_transient( $cache_key, $response_data, $cache_ttl );
+
+	return new WP_REST_Response( $response_data );
 }

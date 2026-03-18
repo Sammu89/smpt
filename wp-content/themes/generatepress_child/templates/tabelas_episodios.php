@@ -196,10 +196,16 @@ function smpt_render_episode_media_allowed( $episode_number, $episode_padded, $v
 			<a class="smpt-dl smpt-dl--hd" href="' . esc_url( $download_url ) . '">Download em HD</a>
 			<span class="smpt-dl-help">Ficheiro completo via p&aacute;gina de torrent</span>
 
-			<a class="smpt-dl smpt-dl--av1" href="' . esc_url( $video_src ) . '" download="Sailor Moon - ' . $episode_padded . ' (Dual Audio - Legendado 640X480)[smpt][av1 opus].mp4" onclick="trackDownload(\'download_ep' . $episode_padded . '_av1\');">Download AV1</a>
+' . ( is_user_logged_in()
+	? '			<a class="smpt-dl smpt-dl--av1" href="' . esc_url( $video_src ) . '" download="Sailor Moon - ' . $episode_padded . ' (Dual Audio - Legendado 640X480)[smpt][av1 opus].mp4" onclick="trackDownload(\'download_ep' . $episode_padded . '_av1\');">Download AV1</a>'
+	: '			<a class="smpt-dl smpt-dl--av1 smpt-ep-btn--disabled" title="Faz login para poderes fazer download!" aria-label="Faz login para poderes fazer download!">Download AV1</a>'
+) . '
 			<span class="smpt-dl-help">~50MB, melhor qualidade, navegadores modernos</span>
 
-			<a class="smpt-dl smpt-dl--h264" href="' . esc_url( $h264_src ) . '" download="Sailor Moon - ' . $episode_padded . ' (Dual Audio - Legendado 640X480)[smpt][h264 opus].mp4" onclick="trackDownload(\'download_ep' . $episode_padded . '_h264\');">Download H264</a>
+' . ( is_user_logged_in()
+	? '			<a class="smpt-dl smpt-dl--h264" href="' . esc_url( $h264_src ) . '" download="Sailor Moon - ' . $episode_padded . ' (Dual Audio - Legendado 640X480)[smpt][h264 opus].mp4" onclick="trackDownload(\'download_ep' . $episode_padded . '_h264\');">Download H264</a>'
+	: '			<a class="smpt-dl smpt-dl--h264 smpt-ep-btn--disabled" title="Faz login para poderes fazer download!" aria-label="Faz login para poderes fazer download!">Download H264</a>'
+) . '
 			<span class="smpt-dl-help">~50MB, compatibilidade universal</span>
 		</div>
 	</div>';
