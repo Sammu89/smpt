@@ -187,25 +187,17 @@ function smpt_rest_handle_track( WP_REST_Request $request ) {
 		return new WP_REST_Response( array( 'ok' => false ), 400 );
 	}
 
-	$allowed_events = array( 'stream', 'download', 'music_stream', 'nostalgia_play', 'manga_view', 'manga_download' );
+	$allowed_events = array( 'stream', 'download', 'music_stream', 'nostalgia_play' );
 	if ( ! in_array( $event_type, $allowed_events, true ) ) {
 		return new WP_REST_Response( array( 'ok' => false ), 400 );
 	}
 
 	// Rate limiting: skip if same visitor+event+item within last 5 seconds.
-	$recent = $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$wpdb->prefix}smpt_events e
-		 INNER JOIN {$wpdb->prefix}smpt_visitors v ON v.id = e.visitor_id
-		 WHERE v.visitor_hash = %s AND e.event_type = %s AND e.item_id = %s
-		 AND e.created_at > DATE_SUB(NOW(), INTERVAL 5 SECOND)",
-		$visitor_hash,
-		$event_type,
-		$item_id
-	) );
-
-	if ( $recent > 0 ) {
+	$rl_key = 'smpt_rl_' . md5( $visitor_hash . '|' . $event_type . '|' . $item_id );
+	if ( false !== get_transient( $rl_key ) ) {
 		return new WP_REST_Response( array( 'ok' => true, 'skipped' => true ) );
 	}
+	set_transient( $rl_key, 1, 5 );
 
 	$meta        = isset( $body['meta'] ) && is_array( $body['meta'] ) ? $body['meta'] : array();
 	$device_type = isset( $meta['device_type'] ) ? sanitize_text_field( $meta['device_type'] ) : '';

@@ -1,0 +1,567 @@
+ ▐▛███▜▌   Claude Code v2.1.76
+▝▜█████▛▘  Sonnet 4.6 · Claude Pro
+  ▘▘ ▝▝    ~\Local Sites\smpt\app\public
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Plan to implement                                                            │
+│                                                                              │
+│ Episode Interactions System — Implementation Plan                            │
+│                                                                              │
+│ Context                                                                      │
+│                                                                              │
+│ Episode pages currently have no user interaction features. Users want to     │
+│ rate, like/dislike, comment on individual episodes, and track which episodes │
+│  they've watched. The fanfiction plugin (on a separate site) already         │
+│ implements ratings/likes/localStorage persistence patterns that we'll adapt  │
+│ — not import — into the SMPT mu-plugin.                                      │
+│                                                                              │
+│ Episodes are NOT WP posts. They're rendered by gerar_episodios() in          │
+│ tabelas_episodios.php as HTML cards with IDs like episodio_001. This means   │
+│ we need custom DB tables for interactions and comments (can't use WP post    │
+│ meta or native comments for per-episode data).                               │
+│                                                                              │
+│ ---                                                                          │
+│ Files to Create                                                              │
+│                                                                              │
+│ File: mu-plugins/smpt-site/php/episode-interactions.php                      │
+│ Purpose: All PHP: DB tables, REST routes, interaction logic, login sync      │
+│ ────────────────────────────────────────                                     │
+│ File: mu-plugins/smpt-site/javascript/episode-interactions.js                │
+│ Purpose: All frontend: LocalStore, UI, AJAX, optimistic updates              │
+│ ────────────────────────────────────────                                     │
+│ File: themes/generatepress_child/css/episode-interactions.css                │
+│ Purpose: Styles: stars, like/dislike, comments, watched badge                │
+│                                                                              │
+│ Files to Modify                                                              │
+│                                                                              │
+│ ┌───────────────────────────────────────────────┬─────────────────────────┐  │
+│ │                     File                      │         Change          │  │
+│ ├───────────────────────────────────────────────┼─────────────────────────┤  │
+│ │ mu-plugins/smpt-site/inc/modules.php          │ Add require_once for ep │  │
+│ │                                               │ isode-interactions.php  │  │
+│ ├───────────────────────────────────────────────┼─────────────────────────┤  │
+│ │                                               │ Enqueue                 │  │
+│ │ mu-plugins/smpt-site/inc/head-assets.php      │ episode-interactions.js │  │
+│ │                                               │  + wp_localize_script   │  │
+│ │                                               │ on episode pages        │  │
+│ ├───────────────────────────────────────────────┼─────────────────────────┤  │
+│ │                                               │ Dispatch                │  │
+│ │ mu-plugins/smpt-site/javascript/watch-tracker │ smpt:watchComplete      │  │
+│ │ .js                                           │ custom event at         │  │
+│ │                                               │ milestone 100           │  │
+│ ├───────────────────────────────────────────────┼─────────────────────────┤  │
+│ │ mu-plugins/smpt-site/php/tabelas_episodios.ph │ Add <div class="smpt-ep │  │
+│ │ p                                             │ -interactions">         │  │
+│ │                                               │ placeholder per card    │  │
+│ ├───────────────────────────────────────────────┼─────────────────────────┤  │
+│ │                                               │ Enqueue episode-interac │  │
+│ │ themes/generatepress_child/inc/assets.php     │ tions.css on episode    │  │
+│ │                                               │ pages                   │  │
+│ ├───────────────────────────────────────────────┼─────────────────────────┤  │
+│ │ themes/generatepress_child/templates/member-d │ Add "Episodios vistos"  │  │
+│ │ ashboard.php                                  │ panel                   │  │
+│ └───────────────────────────────────────────────┴─────────────────────────┘  │
+│                                                                              │
+│ ---                                                                          │
+│ 1. Database (3 tables, version-gated via dbDelta)                            │
+│                                                                              │
+│ wp_smpt_episode_interactions                                                 │
+│                                                                              │
+│ id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY                   │
+│ user_id         BIGINT UNSIGNED NULL                                         │
+│ anon_hash       BINARY(32) NULL                                              │
+│ episode_id      SMALLINT UNSIGNED NOT NULL          -- integer 1-200         │
+│ interaction_type ENUM('like','dislike','rating','watched') NOT NULL          │
+│ value           DECIMAL(3,1) NULL                    -- rating 0.5-5.0       │
+│ created_at      DATETIME DEFAULT CURRENT_TIMESTAMP                           │
+│ updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE                 │
+│ CURRENT_TIMESTAMP                                                            │
+│ UNIQUE KEY (user_id, episode_id, interaction_type)                           │
+│ UNIQUE KEY (anon_hash, episode_id, interaction_type)                         │
+│ KEY (episode_id)                                                             │
+│                                                                              │
+│ wp_smpt_episode_comments                                                     │
+│                                                                              │
+│ id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY                   │
+│ user_id         BIGINT UNSIGNED NULL                                         │
+│ anon_hash       BINARY(32) NULL                                              │
+│ author_name     VARCHAR(100) NOT NULL DEFAULT ''                             │
+│ episode_id      SMALLINT UNSIGNED NOT NULL                                   │
+│ comment_text    TEXT NOT NULL                                                │
+│ created_at      DATETIME DEFAULT CURRENT_TIMESTAMP                           │
+│ KEY (episode_id, created_at)                                                 │
+│                                                                              │
+│ wp_smpt_episode_counters                                                     │
+│                                                                              │
+│ episode_id      SMALLINT UNSIGNED PRIMARY KEY                                │
+│ likes           INT UNSIGNED DEFAULT 0                                       │
+│ dislikes        INT UNSIGNED DEFAULT 0                                       │
+│ rating_sum      DECIMAL(10,1) DEFAULT 0                                      │
+│ rating_count    INT UNSIGNED DEFAULT 0                                       │
+│ comment_count   INT UNSIGNED DEFAULT 0                                       │
+│                                                                              │
+│ Table creation gated by get_option('smpt_ep_interactions_db_ver'), same      │
+│ pattern as analytics.php.                                                    │
+│                                                                              │
+│ ---                                                                          │
+│ 2. PHP Backend (episode-interactions.php)                                    │
+│                                                                              │
+│ Core Functions (adapted from fanfiction plugin patterns)                     │
+│                                                                              │
+│ - smpt_ep_hash_anon_uuid($uuid) — hash_hmac('sha256', $uuid,                 │
+│ wp_salt('auth'), true)                                                       │
+│ - smpt_ep_resolve_actor($user_id, $anon_uuid) — returns ['user_id' => int]   │
+│ or ['anon_hash' => binary]                                                   │
+│ - smpt_ep_set_reaction($ep_id, $user_id, $anon_uuid, $intent) — like/dislike │
+│  state machine with advisory lock + transaction. Intents: like, remove_like, │
+│  dislike, remove_dislike. Updates counters atomically.                       │
+│ - smpt_ep_set_rating($ep_id, $user_id, $anon_uuid, $value) — upsert rating,  │
+│ update counter sum/count                                                     │
+│ - smpt_ep_remove_rating($ep_id, $user_id, $anon_uuid) — delete rating,       │
+│ adjust counters                                                              │
+│ - smpt_ep_set_watched($ep_id, $user_id) — logged-in only, upsert watched row │
+│ - smpt_ep_remove_watched($ep_id, $user_id) — delete watched row              │
+│ - smpt_ep_add_comment($ep_id, $user_id, $anon_uuid, $author_name, $text) —   │
+│ insert + increment counter                                                   │
+│ - smpt_ep_get_comments($ep_id, $page, $per_page) — paginated, oldest first   │
+│ - smpt_ep_get_batch_counters($ep_ids) — single query for all episodes on     │
+│ page                                                                         │
+│ - smpt_ep_get_user_states($actor, $ep_ids) — batch load current user/anon    │
+│ state                                                                        │
+│ - smpt_ep_get_watched_episodes($user_id) — all watched episode_ids for       │
+│ dashboard                                                                    │
+│ - smpt_ep_reattribute_anon($user_id, $anon_hash) — on login, migrate anon    │
+│ rows (delete dupes, update remainder)                                        │
+│                                                                              │
+│ REST Endpoints (namespace smpt/v1)                                           │
+│                                                                              │
+│ ┌───────┬──────────────────────────────┬─────────────────────────────────┐   │
+│ │ Metho │            Route             │             Purpose             │   │
+│ │   d   │                              │                                 │   │
+│ ├───────┼──────────────────────────────┼─────────────────────────────────┤   │
+│ │ POST  │ /ep-interact                 │ Unified: like/dislike/rating/wa │   │
+│ │       │                              │ tched/comment                   │   │
+│ ├───────┼──────────────────────────────┼─────────────────────────────────┤   │
+│ │ GET   │ /ep-stats?episodes=1,2,3...4 │ Batch counters + user states    │   │
+│ │       │ 6                            │ for page                        │   │
+│ ├───────┼──────────────────────────────┼─────────────────────────────────┤   │
+│ │ GET   │ /ep-comments/{episode_id}?pa │ Paginated comments              │   │
+│ │       │ ge=1                         │                                 │   │
+│ ├───────┼──────────────────────────────┼─────────────────────────────────┤   │
+│ │ POST  │ /ep-sync                     │ Login sync: reattribute anon    │   │
+│ │       │                              │ rows + merge                    │   │
+│ └───────┴──────────────────────────────┴─────────────────────────────────┘   │
+│                                                                              │
+│ All use permission_callback => '__return_true' (matching existing analytics  │
+│ routes). Nonce via X-WP-Nonce header (standard WP REST).                     │
+│                                                                              │
+│ Login Sync Hook                                                              │
+│                                                                              │
+│ - wp_login action → set transient smpt_ep_needs_sync_{user_id}               │
+│ - JS detects via wp_localize_script → sends localStorage + anon UUID to      │
+│ /ep-sync                                                                     │
+│ - Backend calls smpt_ep_reattribute_anon() then returns merged state         │
+│                                                                              │
+│ WP Page Comments                                                             │
+│                                                                              │
+│ Filter comments_open to return true for the 5 season page IDs (1060, 3899,   │
+│ 4430, 5672, 5918). GeneratePress already has comment templates.              │
+│                                                                              │
+│ ---                                                                          │
+│ 3. JavaScript (episode-interactions.js)                                      │
+│                                                                              │
+│ jQuery IIFE, loaded in footer, depends on jquery + smpt-analytics.           │
+│                                                                              │
+│ LocalStore (adapted from FanficLocalStore)                                   │
+│                                                                              │
+│ - Storage key: 'smpt_ep_interactions'                                        │
+│ - Reuses window.smptVisitorHash from analytics.js as anonymous UUID (no      │
+│ separate UUID needed)                                                        │
+│ - Entry format: { 'ep_42': { like: true, rating: 4.5, watched: true,         │
+│ timestamp: ms } }                                                            │
+│ - Methods: get(epId), set(epId, entry), toggleLike(epId),                    │
+│ toggleDislike(epId), setRating(epId, val), setWatched(epId, bool), getAll()  │
+│                                                                              │
+│ Page Init Flow                                                               │
+│                                                                              │
+│ 1. Collect episode IDs from .contentor_episodio elements on page             │
+│ 2. GET /ep-stats?episodes=1,2,...46 → batch load counters + user states      │
+│ 3. Merge server states with localStorage (server wins for logged-in,         │
+│ localStorage wins for anon)                                                  │
+│ 4. Render interaction bar into each .smpt-ep-interactions placeholder        │
+│ 5. If config.needsSync → trigger login sync                                  │
+│                                                                              │
+│ UI Rendering (injected into .smpt-ep-interactions div)                       │
+│                                                                              │
+│ Each episode card gets an interaction bar containing:                        │
+│ [★★★★☆ 4.2 (15)] [👍 12] [👎 2] [💬 3] [✓ Visto]                             │
+│                                                                              │
+│ - Stars: 5 SVG stars with half-star hit zones (same pattern as fanfiction).  │
+│ Hover preview, click submits.                                                │
+│ - Like/Dislike: Toggle buttons with counts. Mutually exclusive.              │
+│ - Comments toggle: Shows count, expands comment section below when clicked.  │
+│ - Watched: Checkmark badge (logged-in only).                                 │
+│                                                                              │
+│ Comments Section (lazy-loaded)                                               │
+│                                                                              │
+│ - Expand on click → GET /ep-comments/{id}?page=1                             │
+│ - Shows author name + relative timestamp + text                              │
+│ - Comment form: name field (pre-filled if logged in, editable if anon) +     │
+│ textarea + submit button                                                     │
+│ - Paginated with "load more" button                                          │
+│                                                                              │
+│ Optimistic UI Pattern                                                        │
+│                                                                              │
+│ 1. Update localStorage immediately                                           │
+│ 2. Update DOM counts/states immediately                                      │
+│ 3. POST to REST async                                                        │
+│ 4. On response: correct counts from server stats object                      │
+│ 5. On failure: revert localStorage + DOM                                     │
+│                                                                              │
+│ Watch-Tracker Integration                                                    │
+│                                                                              │
+│ Listen for smpt:watchComplete custom event (dispatched from modified         │
+│ watch-tracker.js):                                                           │
+│ document.addEventListener('smpt:watchComplete', function(e) {                │
+│     var match = (e.detail.itemId || '').match(/^episodio_(\d+)$/);           │
+│     if (match) sendInteraction(parseInt(match[1], 10), 'watched');           │
+│ });                                                                          │
+│                                                                              │
+│ ---                                                                          │
+│ 4. CSS (episode-interactions.css)                                            │
+│                                                                              │
+│ Loaded conditionally on episode pages. Reuses existing variables: --accent,  │
+│ --smpt-table-divider-color-resolved, --contrast-2.                           │
+│                                                                              │
+│ Key sections:                                                                │
+│ - .smpt-ep-interactions — flex bar at bottom of card, border-top matches     │
+│ card divider                                                                 │
+│ - .smpt-ep-stars — inline-flex star row, 20px star SVGs, half-star hit zones │
+│ - .smpt-ep-like-btn, .smpt-ep-dislike-btn — ghost buttons with .is-active    │
+│ state colors                                                                 │
+│ - .smpt-ep-watched — checkmark badge, .is-watched for active state           │
+│ - .smpt-ep-comments — expandable section below interaction bar               │
+│ - .smpt-ep-comment — individual comment block (author + time + text)         │
+│ - .smpt-ep-comment-form — textarea + submit button using --accent            │
+│ - Responsive: stack interaction bar items on small screens                   │
+│                                                                              │
+│ ---                                                                          │
+│ 5. HTML Integration (tabelas_episodios.php)                                  │
+│                                                                              │
+│ Add one line per card, after the closing </div> of .episodio-card-body (line │
+│  293) and before the card's closing </div> (line 294):                       │
+│                                                                              │
+│ echo '<div class="smpt-ep-interactions" data-ep="' . $i . '"></div>';        │
+│                                                                              │
+│ JS populates this div after batch loading stats. The data-ep uses integer    │
+│ episode number.                                                              │
+│                                                                              │
+│ ---                                                                          │
+│ 6. Member Dashboard (member-dashboard.php)                                   │
+│                                                                              │
+│ Add a third .smpt-member-panel after the shortcuts panel:                    │
+│                                                                              │
+│ - Title: "Episodios vistos"                                                  │
+│ - PHP calls smpt_ep_get_watched_episodes($user->ID)                          │
+│ - Renders as a list with links to each episode (anchor to #episodio_NNN on   │
+│ the correct season page)                                                     │
+│ - Empty state: "Ainda nao marcaste nenhum episodio como visto."              │
+│ - Uses existing .smpt-member-facts list pattern                              │
+│ - Helper smpt_ep_get_episode_page_url($ep_num) maps episode ranges to season │
+│  page slugs (reuses same range map from smpt_get_download_page_url)          │
+│                                                                              │
+│ ---                                                                          │
+│ 7. watch-tracker.js Modification                                             │
+│                                                                              │
+│ One line added after state.milestone = 100 (around line 105):                │
+│                                                                              │
+│ document.dispatchEvent(new CustomEvent('smpt:watchComplete', { detail: {     │
+│ itemId: itemId } }));                                                        │
+│                                                                              │
+│ ---                                                                          │
+│ 8. Asset Enqueuing                                                           │
+│                                                                              │
+│ head-assets.php — add inside smpt_enqueue_external_head_assets():            │
+│                                                                              │
+│ if ( smpt_is_episode_page() ) {                                              │
+│     wp_enqueue_script('smpt-episode-interactions',                           │
+│ smpt_site_plugin_url('javascript/episode-interactions.js'),                  │
+│         array('jquery', 'smpt-analytics'), filemtime(SMPT_SITE_PLUGIN_PATH . │
+│  '/javascript/episode-interactions.js'), true);                              │
+│     wp_localize_script('smpt-episode-interactions', 'smptEpInteractions',    │
+│ array(                                                                       │
+│         'restBase'  => rest_url('smpt/v1/'),                                 │
+│         'nonce'     => wp_create_nonce('wp_rest'),                           │
+│         'userId'    => get_current_user_id(),                                │
+│         'needsSync' => (bool) get_transient('smpt_ep_needs_sync_' .          │
+│ get_current_user_id()),                                                      │
+│         'userName'  => wp_get_current_user()->display_name ?: '',            │
+│     ));                                                                      │
+│ }                                                                            │
+│                                                                              │
+│ assets.php (child theme) — add inside smpt_generatepress_enqueue_styles()    │
+│ conditional:                                                                 │
+│                                                                              │
+│ if ( smpt_is_episode_page() ) {                                              │
+│     // existing episodios.css enqueue ...                                    │
+│     wp_enqueue_style('smpt-episode-interactions-style',                      │
+│         get_stylesheet_directory_uri() . '/css/episode-interactions.css',    │
+│         array('smpt-episodios-style'),                                       │
+│ smpt_child_asset_version('css/episode-interactions.css', $version));         │
+│ }                                                                            │
+│                                                                              │
+│ ---                                                                          │
+│ Parallel Agent Strategy                                                      │
+│                                                                              │
+│ The implementation is split across 4 parallel agents working in isolated     │
+│ worktrees, plus a coordinator pass for wiring.                               │
+│                                                                              │
+│ Agent 1: PHP Backend (worktree)                                              │
+│                                                                              │
+│ Creates: mu-plugins/smpt-site/php/episode-interactions.php                   │
+│                                                                              │
+│ Full PHP backend in one file:                                                │
+│ - DB table creation (3 tables, version-gated dbDelta)                        │
+│ - Anonymous UUID hashing (hash_hmac)                                         │
+│ - Actor resolution (user_id vs anon_hash)                                    │
+│ - Like/dislike state machine (advisory lock + transaction)                   │
+│ - Rating upsert/remove with counter updates                                  │
+│ - Watched set/remove (logged-in only)                                        │
+│ - Comment add + paginated retrieval                                          │
+│ - Batch counters + batch user states                                         │
+│ - Reattribute anon rows on login                                             │
+│ - REST route registration (4 endpoints)                                      │
+│ - REST handlers with sanitization                                            │
+│ - wp_login hook for sync transient                                           │
+│ - comments_open filter for season pages                                      │
+│ - Helper: smpt_ep_get_episode_page_url()                                     │
+│ - Helper: smpt_ep_get_watched_episodes()                                     │
+│                                                                              │
+│ Context needed: Fanfiction plugin patterns (DB schema, state machine, hash,  │
+│ reattribute), existing analytics.php REST pattern, season page IDs (1060,    │
+│ 3899, 4430, 5672, 5918), episode range maps.                                 │
+│                                                                              │
+│ Agent 2: JavaScript Frontend (worktree)                                      │
+│                                                                              │
+│ Creates: mu-plugins/smpt-site/javascript/episode-interactions.js             │
+│                                                                              │
+│ Full frontend JS in one file:                                                │
+│ - SmptEpStore localStorage wrapper                                           │
+│ (get/set/toggleLike/toggleDislike/setRating/setWatched/getAll)               │
+│ - Batch stats loading on page init                                           │
+│ - UI rendering: stars (SVG, half-star hit zones), like/dislike buttons,      │
+│ comment toggle, watched badge                                                │
+│ - Event handlers: star click, like/dislike click, comment submit, watched    │
+│ toggle                                                                       │
+│ - Optimistic UI with server correction                                       │
+│ - Comment section expand/collapse with lazy loading + pagination             │
+│ - Login sync trigger                                                         │
+│ - smpt:watchComplete event listener for auto-watched                         │
+│ - All REST calls via $.ajax with X-WP-Nonce header                           │
+│                                                                              │
+│ Context needed: Fanfiction JS patterns (FanficLocalStore, star rendering,    │
+│ optimistic UI, postInteraction), existing smptEpInteractions config from     │
+│ wp_localize_script, window.smptVisitorHash as anon UUID, episode card        │
+│ structure (#episodio_NNN, .smpt-ep-interactions[data-ep]).                   │
+│                                                                              │
+│ Agent 3: CSS Styles (worktree)                                               │
+│                                                                              │
+│ Creates: themes/generatepress_child/css/episode-interactions.css             │
+│                                                                              │
+│ Full stylesheet:                                                             │
+│ - .smpt-ep-interactions flex bar                                             │
+│ - Star rating styles (SVG states, hit zones, hover preview)                  │
+│ - Like/dislike button styles (ghost, .is-active states)                      │
+│ - Watched checkmark badge                                                    │
+│ - Comments section (toggle, list, individual comment, form)                  │
+│ - Responsive breakpoints matching existing episodios.css patterns            │
+│                                                                              │
+│ Context needed: Existing CSS variables (--accent, --smpt-table-*,            │
+│ --contrast-2), episodios.css patterns (.smpt-toggle, card sizing, responsive │
+│  breakpoints), member-area.css patterns (button colors #2678dc).             │
+│                                                                              │
+│ Agent 4: Wiring + Templates (worktree)                                       │
+│                                                                              │
+│ Modifies 5 files (small edits each):                                         │
+│                                                                              │
+│ 1. mu-plugins/smpt-site/inc/modules.php — add require_once line              │
+│ 2. mu-plugins/smpt-site/inc/head-assets.php — add JS enqueue +               │
+│ wp_localize_script block                                                     │
+│ 3. mu-plugins/smpt-site/javascript/watch-tracker.js — add 1 line CustomEvent │
+│  dispatch                                                                    │
+│ 4. mu-plugins/smpt-site/php/tabelas_episodios.php — add interaction          │
+│ placeholder div in card                                                      │
+│ 5. themes/generatepress_child/inc/assets.php — add CSS enqueue in            │
+│ conditional                                                                  │
+│ 6. themes/generatepress_child/templates/member-dashboard.php — add           │
+│ "Episodios vistos" panel                                                     │
+│                                                                              │
+│ Context needed: Exact current file contents (already read), exact line       │
+│ numbers for insertions.                                                      │
+│                                                                              │
+│ Coordination After Agents Complete                                           │
+│                                                                              │
+│ After all 4 agents finish, the coordinator (main context):                   │
+│ 1. Reviews each agent's output for consistency (function names, REST routes, │
+│  CSS classes, data attributes match across PHP/JS/CSS)                       │
+│ 2. Merges worktree branches or applies changes to main                       │
+│ 3. Verifies the full integration works together                              │
+│                                                                              │
+│ ---                                                                          │
+│ Verification                                                                 │
+│                                                                              │
+│ 1. Visit an episode page → interaction bars should render with stars,        │
+│ like/dislike, comments toggle, watched badge                                 │
+│ 2. Click star rating → optimistic update, verify in DB via wp db query       │
+│ "SELECT * FROM wp_smpt_episode_interactions"                                 │
+│ 3. Click like → count increments, click again → removes, click dislike →     │
+│ like removed                                                                 │
+│ 4. Post a comment as anonymous → appears immediately, stored in DB           │
+│ 5. Log in → anon votes should reattribute to user account                    │
+│ 6. Watch a video to 100% → auto-marks as watched                             │
+│ 7. Visit member dashboard → "Episodios vistos" panel shows watched episodes  │
+│ 8. Visit season page → WP native comment form appears at bottom              │
+│ 9. Test on mobile → interaction bar stacks correctly                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+● The features are implemented.
+
+● Now let me address your additional requirements. I see 3 new messages:
+
+  1. Comments: Logged-in users can't change name, can edit for 1 day. Logged-out
+   users need mail + username + text, can edit for 1 day. User can edele their comment, admins can delete and modify all comments directly via Modificar | Apagar on the comment context
+  2. Watched/Seen: Manual only (not auto), checkmark appears left of "Episodio
+  X" header text of the concerned episode.
+3. Implement "Quero ver" feature, that puts the episode onto the logged in user dashboard
+4. Logged out users will se greyed out / unacessible buttons for Rating, like, dislike, visto, quero ver, with a alt text "Faz login para poderes interagir!"
+5. Loggues out users can still comment on episodes and see the ratings / likes / dislikes
+  6. Fanfiction animations: Copy star rating and like/dislike animations from
+  the fanfiction plugin. Also, i want to copy the svg icons, not render real icons. everything is already coded on this plugin.
+
+                                                                  
+
+● Lets start by this
+
+  1. Comments: Logged-in users can't change name, can edit for 1 day. Logged-out
+   need email + username + text, can edit for 1 day.
+  2. Watched/Seen: Manual only (remove auto-watch from smpt:watchComplete),
+  checkmark appears left of "Episodio X" header text of the concerning episode.
+
+
+  Let me apply the changes I can do now (items 1 and 2), then handle the export.
+
+● Read 1 file (ctrl+o to expand)
+
+● Now let me apply all the changes for the 3 feedback items. I'll work through
+  them:
+
+
+
+● Update(wp-content\mu-plugins\smpt-site\javascript\episode-interactions.js)
+ 
+
+● Now add the renderWatchedCheckmarks function and update the watched button
+  handler to also toggle the header checkmark. Also update the comment form for
+  logged-in (no name change, show edit button) and logged-out (add email field).
+   Let me do a comprehensive rewrite of the affected sections.
+
+● Update(wp-content\mu-plugins\smpt-site\javascript\episode-interactions.js)
+
+
+● Now update the comment submit handler to handle the new form structure and
+  edit functionality:
+
+● Update(wp-content\mu-plugins\smpt-site\javascript\episode-interactions.js)
+  
+
+● Now add the renderWatchedCheckmarks function and update the watched handler to
+   also toggle the header checkmark:
+
+● Update(wp-content\mu-plugins\smpt-site\javascript\episode-interactions.js)
+
+● Now update the watched button handler to also toggle the header checkmark:
+
+● Update(wp-content\mu-plugins\smpt-site\javascript\episode-interactions.js)
+  ⎿  Added 1 line
+      521  
+      522              store.setWatched(epId, !isWatched);
+      523              $btn.toggleClass('is-watched', !isWatched);
+      524 +            toggleHeaderCheckmark(epId, !isWatched);          
+      525  
+      526              var action = isWatched ? 'remove_watched' : 'watch
+           ed';
+      527              sendInteraction(epId, action, null, store);
+
+● Now update the PHP backend to support: email field for comments, edit_comment
+  action, and is_own flag in comment responses.
+
+● Read 1 file (ctrl+o to expand)
+
+● Add email column to comments table:
+
+● Update(wp-content\mu-plugins\smpt-site\php\episode-interactions.php)
+  ⎿  Added 2 lines
+      48      user_id BIGINT UNSIGNED NULL,
+      49      anon_hash VARBINARY(32) NULL,
+      50      author_name VARCHAR(100) NOT NULL DEFAULT '',
+      51 +    author_email VARCHAR(200) NOT NULL DEFAULT '',             
+      52      episode_id SMALLINT UNSIGNED NOT NULL,
+      53      comment_text TEXT NOT NULL,
+      54      created_at DATETIME NOT NULL,
+      55 +    updated_at DATETIME NOT NULL,                              
+      56      PRIMARY KEY (id),
+      57      KEY ep_created (episode_id, created_at)
+      58    ) $charset_collate;
+
+● Bump DB version:
+
+● Update(wp-content\mu-plugins\smpt-site\php\episode-interactions.php)
+  ⎿  Added 1 line, removed 1 line
+      18   * Create or update episode interaction database tables.
+      19   */
+      20  function smpt_ep_maybe_create_tables() {
+      21 -  $db_ver    = '1.0';                                          
+      21 +  $db_ver    = '1.1';                                          
+      22    $installed = get_option( 'smpt_ep_interactions_db_ver', '' );
+      23  
+      24    if ( $db_ver === $installed ) {
+
+● Now update smpt_ep_add_comment to accept email and set updated_at:
+
+● Update(wp-content\mu-plugins\smpt-site\php\episode-interactions.php)
+  ⎿  Added 9 lines, removed 6 lines
+      484  /**
+      485   * Add a comment to an episode.
+      486   *
+      487 - * @param int    $ep_id       Episode number (1-200).         
+      488 - * @param int    $user_id     WordPress user ID (0 if anon).  
+      489 - * @param string $anon_uuid   Visitor UUID from frontend.     
+      490 - * @param string $author_name Display name for the commenter. 
+      491 - * @param string $text        Comment text.                   
+      487 + * @param int    $ep_id        Episode number (1-200).        
+      488 + * @param int    $user_id      WordPress user ID (0 if anon). 
+      489 + * @param string $anon_uuid    Visitor UUID from frontend.    
+      490 + * @param string $author_name  Display name for the commenter.
+      491 + * @param string $text         Comment text.                  
+      492 + * @param string $author_email Email for anonymous commenters.
+      493   * @return int|false Inserted comment ID or false on failure.
+      494   */
+      494 -function smpt_ep_add_comment( $ep_id, $user_id, $anon_uuid, $a
+          -uthor_name, $text ) {                                         
+      495 +function smpt_ep_add_comment( $ep_id, $user_id, $anon_uuid, $a
+          +uthor_name, $text, $author_email = '' ) {                     
+      496    global $wpdb;
+      497  
+      498    $actor   = smpt_ep_resolve_actor( $user_id, $anon_uuid );
+     ...
+      505    $insert_data = array(
+      506      'episode_id'   => $ep_id,
+      507      'author_name'  => $author_name,
+      508 +    'author_email' => $author_email,                          
+      509      'comment_text' => $text,
+      510      'created_at'   => $now,
+      511 +    'updated_at'   => $now,                                   
+      512    );
+      513  
+      514    if ( null !== $actor['user_id'] ) {
+  ⎿  Interrupted · Lets continue from there. Ask questions if needed.

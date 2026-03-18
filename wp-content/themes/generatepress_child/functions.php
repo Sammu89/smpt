@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $smpt_theme_includes = array(
+	'/templates/tabelas_episodios.php',
 	'/inc/assets.php',
 	'/inc/featured-images.php',
 	'/inc/featured-video.php',

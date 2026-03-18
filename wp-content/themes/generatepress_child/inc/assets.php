@@ -27,22 +27,26 @@ function smpt_child_asset_version( $relative_path, $fallback ) {
 /**
  * Determine whether the current request is for one of the episode pages.
  *
- * @return bool
+ * The canonical definition now lives in mu-plugins (modules.php) so it is
+ * available before the theme loads.  This fallback keeps the theme working
+ * if the mu-plugin is ever deactivated.
  */
-function smpt_is_episode_page() {
-	if ( ! is_page() ) {
-		return false;
-	}
+if ( ! function_exists( 'smpt_is_episode_page' ) ) {
+	function smpt_is_episode_page() {
+		if ( ! is_page() ) {
+			return false;
+		}
 
-	return is_page(
-		array(
-			'episodios-s01',
-			'episodios-s02',
-			'episodios-s03',
-			'episodios-s04',
-			'episodios-s05',
-		)
-	);
+		return is_page(
+			array(
+				'episodios-s01',
+				'episodios-s02',
+				'episodios-s03',
+				'episodios-s04',
+				'episodios-s05',
+			)
+		);
+	}
 }
 
 /**
@@ -112,6 +116,12 @@ function smpt_generatepress_enqueue_styles() {
 			array( 'generate-style' ),
 			$episodios_ver
 		);
+		wp_enqueue_style(
+			'smpt-episode-interactions-style',
+			get_stylesheet_directory_uri() . '/css/episode-interactions.css',
+			array( 'smpt-episodios-style' ),
+			smpt_child_asset_version( 'css/episode-interactions.css', $version )
+		);
 	}
 }
 add_action( 'wp_enqueue_scripts', 'smpt_generatepress_enqueue_styles' );
@@ -127,7 +137,6 @@ function smpt_generatepress_enqueue_scripts() {
 	$hero_sky_ver   = smpt_child_asset_version( 'javascript/hero-header-animation.js', $version );
 	$featured_ver   = smpt_child_asset_version( 'javascript/featured-video.js', $version );
 	$infobox_ver    = smpt_child_asset_version( 'javascript/infobox.js', $version );
-	$episodios_ver  = smpt_child_asset_version( 'javascript/video.js', $version );
 	$columns_ver    = smpt_child_asset_version( 'javascript/content-columns.js', $version );
 
 	wp_enqueue_script(
@@ -178,14 +187,5 @@ function smpt_generatepress_enqueue_scripts() {
 		);
 	}
 
-	if ( smpt_is_episode_page() ) {
-		wp_enqueue_script(
-			'smpt-episodios',
-			get_stylesheet_directory_uri() . '/javascript/video.js',
-			array( 'jquery' ),
-			$episodios_ver,
-			true
-		);
-	}
 }
 add_action( 'wp_enqueue_scripts', 'smpt_generatepress_enqueue_scripts' );

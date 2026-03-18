@@ -136,7 +136,7 @@ function smpt_render_navigation_account_item() {
 	$user         = wp_get_current_user();
 	$display_name = $user->display_name ? $user->display_name : __( 'Conta', 'generatepress' );
 	$is_moonie    = function_exists( 'smpt_member_is_moonie' ) && smpt_member_is_moonie( $user );
-	$account_url  = $is_moonie && function_exists( 'smpt_member_get_url' ) ? smpt_member_get_url( 'dashboard' ) : admin_url();
+	$account_url  = function_exists( 'smpt_member_get_url' ) ? smpt_member_get_url( 'dashboard' ) : home_url( '/' );
 	$logout_url   = function_exists( 'smpt_member_get_logout_url' ) ? smpt_member_get_logout_url( $current_url, $user ) : wp_logout_url( $current_url );
 	?>
 	<div class="menu-bar-item smpt-account-link smpt-account-link--logged-in menu-item-has-children">
@@ -217,7 +217,7 @@ function smpt_prepend_collapsed_navigation_account_item( $items, $args ) {
 	$user         = wp_get_current_user();
 	$display_name = $user->display_name ? $user->display_name : __( 'Conta', 'generatepress' );
 	$is_moonie    = function_exists( 'smpt_member_is_moonie' ) && smpt_member_is_moonie( $user );
-	$account_url  = $is_moonie && function_exists( 'smpt_member_get_url' ) ? smpt_member_get_url( 'dashboard' ) : admin_url();
+	$account_url  = function_exists( 'smpt_member_get_url' ) ? smpt_member_get_url( 'dashboard' ) : home_url( '/' );
 	$logout_url   = function_exists( 'smpt_member_get_logout_url' ) ? smpt_member_get_logout_url( $current_url, $user ) : wp_logout_url( $current_url );
 	$submenu      = sprintf(
 		'<li class="menu-item"><a href="%1$s"><span class="dashicons dashicons-dashboard" aria-hidden="true"></span><span>%2$s</span></a></li>',

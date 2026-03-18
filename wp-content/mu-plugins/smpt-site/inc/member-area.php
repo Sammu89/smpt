@@ -19,7 +19,7 @@ function smpt_member_get_config() {
 			'login'         => array( 'entrar', 'login' ),
 			'register'      => array( 'registar', 'register' ),
 			'lost_password' => array( 'recuperar-password', 'password-reset', 'lost-password' ),
-			'dashboard'     => array( 'painel', 'dashboard', 'members' ),
+			'dashboard'     => array( 'painel' ),
 			'logout'        => array( 'desconectar', 'logout' ),
 		),
 	);
