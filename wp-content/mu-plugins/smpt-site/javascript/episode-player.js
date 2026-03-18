@@ -26,6 +26,46 @@
 	var activeCard = null;
 
 	// =====================================================================
+	// ACTIVITY LOG (localStorage-based, max 30 entries)
+	// =====================================================================
+
+	var ACTIVITY_KEY = 'smpt_activity_log';
+	var ACTIVITY_DISMISSED_KEY = 'smpt_activity_dismissed';
+	var ACTIVITY_MAX = 30;
+
+	window.smptLogActivity = function (type, message) {
+		try {
+			var log = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
+			log.unshift({ type: type, msg: message, ts: Date.now() });
+			if (log.length > ACTIVITY_MAX) { log = log.slice(0, ACTIVITY_MAX); }
+			localStorage.setItem(ACTIVITY_KEY, JSON.stringify(log));
+			localStorage.removeItem(ACTIVITY_DISMISSED_KEY);
+		} catch (e) { /* noop */ }
+	};
+
+	window.smptGetActivityLog = function () {
+		try {
+			return JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
+		} catch (e) {
+			return [];
+		}
+	};
+
+	window.smptIsActivityDismissed = function () {
+		try {
+			return localStorage.getItem(ACTIVITY_DISMISSED_KEY) === '1';
+		} catch (e) {
+			return false;
+		}
+	};
+
+	window.smptDismissActivity = function () {
+		try {
+			localStorage.setItem(ACTIVITY_DISMISSED_KEY, '1');
+		} catch (e) { /* noop */ }
+	};
+
+	// =====================================================================
 	// AV1 SUPPORT DETECTION
 	// =====================================================================
 
@@ -455,6 +495,7 @@
 					window.smptTrack('stream', itemId);
 				}
 				document.dispatchEvent(new CustomEvent('smpt:streamTracked', { detail: { ep: ep } }));
+				window.smptLogActivity('stream', 'Viste o epis\u00f3dio ' + ep + ' (vers\u00e3o remasterizada)');
 			}
 		});
 	}
@@ -501,6 +542,7 @@
 				window.smptTrack('nostalgia_play', itemId);
 			}
 			document.dispatchEvent(new CustomEvent('smpt:streamTracked', { detail: { ep: ep } }));
+			window.smptLogActivity('nostalgia', 'Viste o epis\u00f3dio ' + ep + ' (modo nostalgia)');
 		}
 	});
 
