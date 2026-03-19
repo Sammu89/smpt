@@ -1252,8 +1252,8 @@ function smpt_ep_get_daily_limit( $user_id ) {
 	}
 
 	$tier = smpt_ep_get_user_tier( $user_id );
-	$limits = array( 3, 5, 7, 10, 15 ); // Tier 0-4
-	return $limits[ $tier ] ?? 3;
+	$opt  = smpt_ep_get_tier_limits_option();
+	return $opt['tiers'][ $tier ] ?? 3;
 }
 
 /**
@@ -1423,9 +1423,9 @@ function smpt_ep_check_view_allowed( $user_id ) {
 		}
 
 		// Compute daily limit from points without a second DB query.
-		$tier_limits = array( 3, 5, 7, 10, 15 );
+		$opt = smpt_ep_get_tier_limits_option();
 		$tier = $total_points < 40 ? 0 : ( $total_points < 80 ? 1 : ( $total_points < 120 ? 2 : ( $total_points < 160 ? 3 : 4 ) ) );
-		$limit = $tier_limits[ $tier ];
+		$limit = $opt['tiers'][ $tier ];
 		$allowed = $views_today < $limit;
 
 		if ( ! $allowed ) {
@@ -1456,11 +1456,12 @@ function smpt_ep_check_view_allowed( $user_id ) {
 			'seconds_until_reset' => 0,
 		);
 	} else {
-		// Logged-out user (2 per day) - tracked on frontend via transient/cookie
+		// Logged-out user — tracked on frontend via localStorage
+		$opt = smpt_ep_get_tier_limits_option();
 		return array(
 			'allowed'             => true,
 			'views_today'         => 0,
-			'limit'               => 2,
+			'limit'               => $opt['logged_out'],
 			'message'             => '',
 			'seconds_until_reset' => 0,
 		);
@@ -1490,7 +1491,8 @@ function smpt_ep_get_user_points_data( $user_id ) {
 		'Temporada S',
 		'SuperS',
 	);
-	$tier_limits = array( 3, 5, 7, 10, 15 );
+	$opt = smpt_ep_get_tier_limits_option();
+	$tier_limits = $opt['tiers'];
 
 	if ( ! $row ) {
 		return array(
@@ -2114,3 +2116,103 @@ function smpt_ep_comments_open( $open, $post_id ) {
 	return $open;
 }
 add_filter( 'comments_open', 'smpt_ep_comments_open', 10, 2 );
+
+/* =========================================================================
+ * SETTINGS PAGE — Episode View Limits
+ * ========================================================================= */
+
+/**
+ * Get tier episode limits from options (with defaults).
+ *
+ * @return array { 'logged_out' => int, 'tiers' => int[5] }
+ */
+function smpt_ep_get_tier_limits_option() {
+	$defaults = array(
+		'logged_out' => 2,
+		'tiers'      => array( 3, 5, 7, 10, 15 ),
+	);
+	$saved = get_option( 'smpt_ep_view_limits', array() );
+	return wp_parse_args( $saved, $defaults );
+}
+
+/**
+ * Register settings.
+ */
+function smpt_ep_register_settings() {
+	register_setting( 'smpt_ep_settings', 'smpt_ep_view_limits', array(
+		'type'              => 'array',
+		'sanitize_callback' => 'smpt_ep_sanitize_view_limits',
+	) );
+}
+add_action( 'admin_init', 'smpt_ep_register_settings' );
+
+/**
+ * Sanitize the view limits option.
+ *
+ * @param mixed $input Raw input.
+ * @return array Sanitized.
+ */
+function smpt_ep_sanitize_view_limits( $input ) {
+	$clean = array();
+	$clean['logged_out'] = isset( $input['logged_out'] ) ? max( 0, intval( $input['logged_out'] ) ) : 2;
+	$clean['tiers'] = array();
+	for ( $i = 0; $i < 5; $i++ ) {
+		$clean['tiers'][ $i ] = isset( $input['tiers'][ $i ] ) ? max( 0, intval( $input['tiers'][ $i ] ) ) : 3;
+	}
+	return $clean;
+}
+
+/**
+ * Add admin menu page.
+ */
+function smpt_ep_add_settings_page() {
+	add_options_page(
+		'Limites de Episódios',
+		'Limites Episódios',
+		'manage_options',
+		'smpt-episode-limits',
+		'smpt_ep_render_settings_page'
+	);
+}
+add_action( 'admin_menu', 'smpt_ep_add_settings_page' );
+
+/**
+ * Render the settings page.
+ */
+function smpt_ep_render_settings_page() {
+	$limits = smpt_ep_get_tier_limits_option();
+	$tier_names = array( 'Membro', 'Temporada Clássica', 'Temporada R', 'Temporada S', 'SuperS' );
+	$tier_points = array( '0–39', '40–79', '80–119', '120–159', '160+' );
+	?>
+	<div class="wrap">
+		<h1>Limites de Episódios por Dia</h1>
+		<form method="post" action="options.php">
+			<?php settings_fields( 'smpt_ep_settings' ); ?>
+			<table class="form-table">
+				<tr>
+					<th scope="row">Utilizadores não autenticados</th>
+					<td>
+						<input type="number" name="smpt_ep_view_limits[logged_out]" value="<?php echo intval( $limits['logged_out'] ); ?>" min="0" max="100" style="width:80px;" />
+						<p class="description">Episódios por dia para visitantes sem login (controlado via localStorage no browser).</p>
+					</td>
+				</tr>
+			</table>
+
+			<h2>Limites por nível (utilizadores autenticados)</h2>
+			<table class="form-table">
+				<?php for ( $i = 0; $i < 5; $i++ ) : ?>
+				<tr>
+					<th scope="row"><?php echo esc_html( $tier_names[ $i ] ); ?> <small style="color:#999;">(<?php echo esc_html( $tier_points[ $i ] ); ?> pts)</small></th>
+					<td>
+						<input type="number" name="smpt_ep_view_limits[tiers][<?php echo $i; ?>]" value="<?php echo intval( $limits['tiers'][ $i ] ); ?>" min="0" max="999" style="width:80px;" />
+						<span>episódios/dia</span>
+					</td>
+				</tr>
+				<?php endfor; ?>
+			</table>
+
+			<?php submit_button( 'Guardar alterações' ); ?>
+		</form>
+	</div>
+	<?php
+}

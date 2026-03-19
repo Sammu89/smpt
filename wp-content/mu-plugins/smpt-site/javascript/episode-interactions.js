@@ -698,6 +698,9 @@
                 if (!err && resp && resp.state) {
                     syncEpisodeStateFromResponse(epId, resp.state, store);
                 }
+                if (!err && newState.like && typeof window.smptLogActivity === 'function') {
+                    window.smptLogActivity('like', 'Gostaste do epis\u00f3dio ' + epId);
+                }
             });
         });
 
@@ -719,6 +722,9 @@
             sendInteraction(epId, action, null, store, function(err, resp) {
                 if (!err && resp && resp.state) {
                     syncEpisodeStateFromResponse(epId, resp.state, store);
+                }
+                if (!err && newState.dislike && typeof window.smptLogActivity === 'function') {
+                    window.smptLogActivity('dislike', 'N\u00e3o gostaste do epis\u00f3dio ' + epId);
                 }
             });
         });
@@ -744,6 +750,9 @@
                 if (!err && resp && resp.state) {
                     syncEpisodeStateFromResponse(epId, resp.state, store);
                 }
+                if (!err && nextWatched && typeof window.smptLogActivity === 'function') {
+                    window.smptLogActivity('watched', 'Marcaste o epis\u00f3dio ' + epId + ' como visto');
+                }
             });
         });
 
@@ -768,6 +777,9 @@
                 if (!err && resp && resp.state) {
                     syncEpisodeStateFromResponse(epId, resp.state, store);
                 }
+                if (!err && nextWant && typeof window.smptLogActivity === 'function') {
+                    window.smptLogActivity('want', 'Adicionaste o epis\u00f3dio ' + epId + ' a \'Quero ver\'');
+                }
             });
         });
 
@@ -786,6 +798,9 @@
             sendInteraction(epId, isFavorite ? 'remove_favorite' : 'favorite', null, store, function(err, resp) {
                 if (!err && resp && resp.state) {
                     syncEpisodeStateFromResponse(epId, resp.state, store);
+                }
+                if (!err && !isFavorite && typeof window.smptLogActivity === 'function') {
+                    window.smptLogActivity('favorite', 'Adicionaste o epis\u00f3dio ' + epId + ' aos favoritos');
                 }
             });
         });
@@ -821,7 +836,11 @@
             renderStarState($stars, val);
             playStarGlow($stars);
 
-            sendInteraction(epId, 'rate', { value: val }, store);
+            sendInteraction(epId, 'rate', { value: val }, store, function(err) {
+                if (!err && typeof window.smptLogActivity === 'function') {
+                    window.smptLogActivity('rate', 'Classificaste o epis\u00f3dio ' + epId + ' com ' + val + ' estrelas');
+                }
+            });
         });
 
         // --- Comment toggle ---
@@ -896,6 +915,9 @@
                 }
 
                 sendInteraction(epId, 'comment', extra, store, function(err) {
+                    if (!err && typeof window.smptLogActivity === 'function') {
+                        window.smptLogActivity('comment', 'Comentaste o epis\u00f3dio ' + epId);
+                    }
                     if (err) {
                         var errorMsg = '';
                         var resp = err.responseJSON || {};

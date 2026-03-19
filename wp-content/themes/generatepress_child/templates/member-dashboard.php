@@ -221,6 +221,56 @@ get_header();
 							<p class="smpt-ep-empty"><?php esc_html_e( 'Ainda nao marcaste nenhum episodio como favorito.', 'generatepress' ); ?></p>
 						<?php endif; ?>
 					</section>
+					<section class="smpt-member-panel is-active" id="smpt-activity-panel" style="display:none;">
+						<div style="display:flex;justify-content:space-between;align-items:center;">
+							<h2><?php esc_html_e( 'Atividade recente', 'generatepress' ); ?></h2>
+							<button type="button" id="smpt-activity-dismiss" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;padding:4px 8px;" title="<?php esc_attr_e( 'Fechar', 'generatepress' ); ?>">&times;</button>
+						</div>
+						<ul id="smpt-activity-list" class="smpt-activity-list"></ul>
+					</section>
+					<script>
+					(function(){
+						if(typeof window.smptGetActivityLog!=='function')return;
+						if(window.smptIsActivityDismissed())return;
+						var log=window.smptGetActivityLog();
+						if(!log.length)return;
+
+						var icons={
+							stream:'\uD83C\uDFAC',nostalgia:'\uD83D\uDCFA',download:'\u2B07\uFE0F',
+							like:'\u2764\uFE0F',dislike:'\uD83D\uDC4E',rate:'\u2B50',
+							comment:'\uD83D\uDCAC',watched:'\u2705',want:'\uD83D\uDCCC',
+							favorite:'\uD83C\uDF1F',limit_reached:'\u26A0\uFE0F',cap_reached:'\u26A0\uFE0F'
+						};
+
+						function timeAgo(ts){
+							var diff=Math.floor((Date.now()-ts)/1000);
+							if(diff<60)return 'agora mesmo';
+							if(diff<3600)return Math.floor(diff/60)+'m';
+							if(diff<86400)return Math.floor(diff/3600)+'h';
+							return Math.floor(diff/86400)+'d';
+						}
+
+						var panel=document.getElementById('smpt-activity-panel');
+						var list=document.getElementById('smpt-activity-list');
+						var html='';
+						for(var i=0;i<log.length;i++){
+							var e=log[i];
+							var icon=icons[e.type]||'\uD83D\uDD35';
+							html+='<li class="smpt-activity-item">'
+								+'<span class="smpt-activity-icon">'+icon+'</span> '
+								+'<span class="smpt-activity-msg">'+e.msg+'</span> '
+								+'<span class="smpt-activity-time">'+timeAgo(e.ts)+'</span>'
+								+'</li>';
+						}
+						list.innerHTML=html;
+						panel.style.display='';
+
+						document.getElementById('smpt-activity-dismiss').addEventListener('click',function(){
+							window.smptDismissActivity();
+							panel.style.display='none';
+						});
+					})();
+					</script>
 				</div>
 			</div>
 		</div>
