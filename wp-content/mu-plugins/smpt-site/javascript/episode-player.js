@@ -36,6 +36,8 @@
 	window.smptLogActivity = function (type, message) {
 		try {
 			var log = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
+			// Dedup: skip if the most recent entry has the same type + message
+			if (log.length && log[0].type === type && log[0].msg === message) { return; }
 			log.unshift({ type: type, msg: message, ts: Date.now() });
 			if (log.length > ACTIVITY_MAX) { log = log.slice(0, ACTIVITY_MAX); }
 			localStorage.setItem(ACTIVITY_KEY, JSON.stringify(log));
@@ -201,6 +203,7 @@
 	}
 
 	function disableNewEpisodeButtons() {
+		window.smptLogActivity('limit_reached', 'Limite di\u00e1rio de epis\u00f3dios atingido (' + viewStatus.limit + '/' + viewStatus.limit + ')');
 		$('.smpt-toggle').each(function () {
 			var $btn = $(this);
 			var epNum = parseInt($btn.data('ep'), 10);
@@ -314,6 +317,7 @@
 		}
 
 		recordView(epNum);
+		window.smptLogActivity('download', 'Fizeste download do epis\u00f3dio ' + epNum);
 		window.location.href = $link.attr('href');
 	});
 
@@ -325,6 +329,7 @@
 				return;
 			}
 			localStorage.setItem(CAP_TOAST_SHOWN_KEY, getTodayDate());
+			window.smptLogActivity('cap_reached', 'Limite m\u00e1ximo de 50 pontos por dia atingido');
 		} catch (e) { /* noop */ }
 
 		var toastId = 'smpt-point-cap-toast';
