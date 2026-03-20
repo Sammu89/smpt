@@ -27,7 +27,7 @@
 	font-weight: 700;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
-	color: #2678dc;
+	color: var(--accent);
 }
 
 .smpt-member-switch {
@@ -47,7 +47,7 @@
 }
 
 .smpt-member-switch a.is-active {
-	background: #ffffff;
+	background: var(--base-3);
 	box-shadow: 0 10px 24px rgba(159, 171, 191, 0.16);
 }
 
@@ -88,7 +88,7 @@
 	padding: 0.75rem 0.85rem;
 	border: 1px solid rgba(194, 203, 214, 0.95);
 	border-radius: 12px;
-	background: #ffffff;
+	background: var(--base-3);
 }
 
 .smpt-member-checkbox {
@@ -110,15 +110,15 @@
 	padding: 0.8rem 1rem;
 	border: 0;
 	border-radius: 12px;
-	background: #2678dc;
-	color: #ffffff;
+	background: var(--accent);
+	color: var(--base-3);
 	text-decoration: none;
 	cursor: pointer;
 }
 
 .smpt-member-button--ghost {
-	background: #eef3f9;
-	color: #1c2631;
+	background: var(--base-2);
+	color: var(--contrast);
 }
 
 .smpt-member-notice {
@@ -164,7 +164,7 @@
 
 .smpt-member-note {
 	margin-bottom: 0;
-	color: #566172;
+	color: var(--contrast-2);
 }
 
 .smpt-member-inline-link {
@@ -172,7 +172,6 @@
 }
 
 .smpt-member-inline-link a {
-	color: #2678dc;
 	font-weight: 600;
 	text-decoration: none;
 }
@@ -190,7 +189,7 @@
 	align-items: baseline;
 	gap: 8px;
 	padding: 8px 0;
-	border-bottom: 1px solid #f0f0f0;
+	border-bottom: 1px solid var(--base);
 	font-size: 14px;
 }
 
@@ -206,13 +205,13 @@
 
 .smpt-activity-msg {
 	flex: 1;
-	color: #333;
+	color: var(--contrast);
 }
 
 .smpt-activity-time {
 	flex-shrink: 0;
 	font-size: 12px;
-	color: #999;
+	color: var(--contrast-2);
 	white-space: nowrap;
 }
 

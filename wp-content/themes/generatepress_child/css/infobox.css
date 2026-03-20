@@ -33,32 +33,6 @@
   position: relative;
 }
 
-.smpt-infobox--temporada {
-  --smpt-infobox-background-resolved: var(--smpt-infobox-temporada-background, var(--smpt-infobox-background-resolved));
-  --smpt-infobox-border-color-resolved: var(--smpt-infobox-temporada-border-color, var(--smpt-infobox-border-color-resolved));
-  --smpt-infobox-border-width-resolved: var(--smpt-infobox-temporada-border-width, var(--smpt-infobox-border-width-resolved));
-  --smpt-infobox-padding-top-resolved: var(--smpt-infobox-temporada-padding-top, var(--smpt-infobox-padding-top-resolved));
-  --smpt-infobox-padding-right-resolved: var(--smpt-infobox-temporada-padding-right, var(--smpt-infobox-padding-right-resolved));
-  --smpt-infobox-padding-bottom-resolved: var(--smpt-infobox-temporada-padding-bottom, var(--smpt-infobox-padding-bottom-resolved));
-  --smpt-infobox-padding-left-resolved: var(--smpt-infobox-temporada-padding-left, var(--smpt-infobox-padding-left-resolved));
-  --smpt-infobox-max-width-resolved: var(--smpt-infobox-temporada-max-width, var(--smpt-infobox-max-width-resolved));
-  --smpt-infobox-min-height-resolved: var(--smpt-infobox-temporada-min-height, var(--smpt-infobox-min-height-resolved));
-  --smpt-infobox-body-text-resolved: var(--smpt-infobox-temporada-body-text, var(--smpt-infobox-body-text-resolved));
-  --smpt-infobox-header-text-resolved: var(--smpt-infobox-temporada-header-text, var(--smpt-infobox-header-text-resolved));
-  --smpt-infobox-footer-text-resolved: var(--smpt-infobox-temporada-footer-text, var(--smpt-infobox-footer-text-resolved));
-  --smpt-infobox-divider-resolved: var(--smpt-infobox-temporada-divider, var(--smpt-infobox-divider-resolved));
-  --smpt-infobox-close-text-resolved: var(--smpt-infobox-temporada-close-text, var(--smpt-infobox-close-text-resolved));
-  --smpt-infobox-close-background-resolved: var(--smpt-infobox-temporada-close-background, var(--smpt-infobox-close-background-resolved));
-  --smpt-infobox-close-border-resolved: var(--smpt-infobox-temporada-close-border, var(--smpt-infobox-close-border-resolved));
-  --smpt-infobox-close-size-resolved: var(--smpt-infobox-temporada-close-size, var(--smpt-infobox-close-size-resolved));
-  --smpt-infobox-corner-size-resolved: var(--smpt-infobox-temporada-corner-size, var(--smpt-infobox-corner-size-resolved));
-  --smpt-infobox-corner-offset-x-resolved: var(--smpt-infobox-temporada-corner-offset-x, var(--smpt-infobox-corner-offset-x-resolved));
-  --smpt-infobox-corner-offset-y-resolved: var(--smpt-infobox-temporada-corner-offset-y, var(--smpt-infobox-corner-offset-y-resolved));
-  --smpt-infobox-corner-tl-image-resolved: var(--smpt-infobox-temporada-corner-tl-image, var(--smpt-infobox-corner-tl-image-resolved));
-  --smpt-infobox-corner-tr-image-resolved: var(--smpt-infobox-temporada-corner-tr-image, var(--smpt-infobox-corner-tr-image-resolved));
-  --smpt-infobox-corner-bl-image-resolved: var(--smpt-infobox-temporada-corner-bl-image, var(--smpt-infobox-corner-bl-image-resolved));
-  --smpt-infobox-corner-br-image-resolved: var(--smpt-infobox-temporada-corner-br-image, var(--smpt-infobox-corner-br-image-resolved));
-}
 
 .smpt-infobox__inner {
   padding: var(--smpt-infobox-padding-top-resolved) var(--smpt-infobox-padding-right-resolved) var(--smpt-infobox-padding-bottom-resolved) var(--smpt-infobox-padding-left-resolved);
@@ -168,17 +142,12 @@
   color: inherit;
 }
 
-.smpt-infobox a {
-  color: var(--accent);
-}
-
 .smpt-infobox img {
   height: auto;
   max-width: 100%;
 }
 
-.smpt-infobox .contentor,
-.smpt-infobox-media {
+.smpt-infobox .contentor {
   align-items: center;
   display: flex;
   gap: 20px;
@@ -195,55 +164,9 @@
 }
 
 
-
-/* Estilos para ajustar os related posts do Jetpack e Social Share*/
-#jp-relatedposts {
-	max-width: unset;
-	padding: 90px 30px 30px 50px!important;
-}
-
-
-#jp-relatedposts h3.jp-relatedposts-headline {
-		float: unset!important;
-}
-
-#jp-relatedposts h3.jp-relatedposts-headline em, h3.sd-title {
-    font-size: 14px;
-    letter-spacing: 1.3px;
-    margin: 0 0 20px;
-    text-transform: uppercase;
-}
-
-#jp-relatedposts h3.jp-relatedposts-headline em:before, h3.sd-title:before  {
-	content: ""!important;
-    font-family: "Font Awesome 5 Free";
-    font-size: 18px;
-    font-weight: 600;
-    padding-right: 6px;
-	text-align: center;
-}
-
-
-#jp-relatedposts h3.jp-relatedposts-headline em:before {
-	border: none!important;
-	display: inherit!important;
-}
-
-
-h3.sd-title:before {
-  display: inline !important;
-  border: none !important;
-}
-
-h3.sd-title {
-  border-top: 2px solid var(--accent);
-  padding-top: 10px;
-}
-
-
 /* Estilos para telas menores que 767px de largura */
 @media screen and (max-width: 767px) {
-  #jp-relatedposts, #related-posts {
+  #related-posts {
     background: url(https://sm-portugal.com/wp-content/uploads/2023/12/newstopleftmini.gif) top left no-repeat,
                 url(https://sm-portugal.com/wp-content/uploads/2023/12/newstopright.gif) top right no-repeat,
                 url(https://sm-portugal.com/wp-content/uploads/2023/12/newstopcenter.gif) top center repeat-x,
@@ -265,12 +188,6 @@ h3.sd-title {
 	
 	
 	
-	 #jp-relatedposts {
-    padding: 80px 10px 30px 50px!important;
-  }
-	
-	
-	
 	
   .smpt-infobox__inner {
     padding-left: 22px;
@@ -286,8 +203,7 @@ h3.sd-title {
     max-width: 150px;
   }
 
-  .smpt-infobox .contentor,
-  .smpt-infobox-media {
+  .smpt-infobox .contentor {
     align-items: center;
     display: block;
   }
@@ -295,30 +211,4 @@ h3.sd-title {
   .smpt-infobox .celula p {
     padding: 0;
   }
-	
-  /* Estilos para related comments */
-	
-.jp-relatedposts-grid {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.jp-relatedposts-post {
-  flex: 1 1 100%;
-  max-width: 100%;
-  margin-bottom: 50px !important;
-  padding-right: 0px !important;
-
-}
-
-.jp-relatedposts-post-img {
-  margin: auto;}
-
-a.jp-relatedposts-post-a {
-  text-align: center;
-}
-
-a.jp-relatedposts-post-a img {
-  display: inline-block;
-}	
 }

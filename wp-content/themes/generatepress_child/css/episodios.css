@@ -89,23 +89,11 @@ video {
 }
 
 .valor {
-    color: #333;
+    color: var(--contrast);
     grid-column: 2;
     display: inherit;
 }
 
-.estrangeiro {
-    width: 140px;
-    height: 104px;
-    float: left;
-}
-
-.contentor-episodio img {
-    width: 138px;
-    height: 104px;
-    border-bottom: 1px solid var(--smpt-table-divider-color-resolved, #eee);
-    max-width: unset;
-}
 
 /* Code for buttons and image */
 .episodio-opcoes {
@@ -160,7 +148,7 @@ video {
     display: block;
     padding: 10px 20px;
     text-decoration: none;
-    color: #333;
+    color: var(--contrast);
     font-weight: bold;
     cursor: pointer;
 }
@@ -246,7 +234,7 @@ video {
 
 .smpt-play--stream {
   background: var(--accent);
-  color: #fff;
+  color: var(--base-3);
   width: 100%;
 }
 
@@ -264,7 +252,7 @@ video {
   text-align: center;
   text-decoration: none !important;
   background: var(--accent);
-  color: #fff !important;
+  color: var(--base-3) !important;
 }
 
 .smpt-dl:hover {
@@ -273,7 +261,7 @@ video {
 
 .smpt-dl-help {
   font-size: 0.8em;
-  color: #888;
+  color: var(--contrast-2);
   text-align: center;
   display: block;
   margin-bottom: 4px;
@@ -287,8 +275,8 @@ video {
 }
 
 .smpt-play--nostalgia {
-  background: #555;
-  color: #fff;
+  background: var(--contrast-2);
+  color: var(--base-3);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -339,7 +327,7 @@ video {
   border-radius: 50%;
   border: none;
   background: rgba(0, 0, 0, 0.6);
-  color: #fff;
+  color: var(--base-3);
   font-size: 20px;
   line-height: 1;
   cursor: pointer;

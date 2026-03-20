@@ -26,7 +26,7 @@ function smpt_page_title_below_featured_image() {
 		return;
 	}
 	printf(
-		'<div class="grid-container grid-parent"><h1 class="single-post-title">%s</h1></div>',
+		'<div class="grid-container grid-parent smpt-page-title-band"><h1 class="single-post-title">%s</h1></div>',
 		esc_html( get_the_title() )
 	);
 }

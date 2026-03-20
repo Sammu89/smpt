@@ -1,5 +1,5 @@
 /* Estilos gerais para botões e links com aparência de botão */
-.botao, .botao-download, .episodio-opcoes .button, .episodio-opcoes button, .voltar .botao-voltar {
+.botao, .episodio-opcoes .button, .episodio-opcoes button, .voltar .botao-voltar {
   border-radius: 5px;
   cursor: pointer;
   display: inline-block;
@@ -11,7 +11,7 @@
 }
 
 /* Estilo do botão ao passar o rato */
-.botao:active, .botao-download:active, .episodio-opcoes .button:active, .episodio-opcoes button:active, .voltar .botao-voltar:active {
+.botao:active, .episodio-opcoes .button:active, .episodio-opcoes button:active, .voltar .botao-voltar:active {
   transform: translateY(1px);
 }
 
@@ -38,24 +38,22 @@ div.voltar {
 
 
 /* Estilos para links sem decoração */
-.entry-content a:not(.button), article.single-page-article a:not(.button) {
+.entry-content a:not(.button) {
     text-decoration: none !important;
     transition: all 1s cubic-bezier(0, 1.25, 1, 1) !important;
     font-weight: 600;
 }
-.entry-content a:not(.button):hover, article.single-page-article a:not(.button):hover {
+.entry-content a:not(.button):hover {
   border-bottom: 1px solid currentColor;
 }
 
-.entry-content a.smpt-link-iconized,
-article.single-page-article a.smpt-link-iconized {
+.entry-content a.smpt-link-iconized {
   align-items: baseline;
   display: inline-flex;
   gap: 0.24em;
 }
 
-.entry-content .ico,
-article.single-page-article .ico {
+.entry-content .ico {
   display: inline-block;
   height: 0.8em;
   margin-right: 0;
@@ -63,49 +61,3 @@ article.single-page-article .ico {
   width: auto;
 }
 
-/* Estilo do link com destaque */
-a.destaque {
-  color: var(--accent);
-  display: inline-block;
-  font-size: 1.2em;
-  font-weight: 600;
-  margin-top: 20px;
-  overflow: hidden;
-  position: relative;
-  text-decoration: none!important;
-  transition: color .6s ease, transform .6s ease, text-shadow .6s ease;
-}
-
-/* Estilo do link com destaque ao passar o mouse */
- a.destaque:hover {
-  color: var(--contrast);
-  text-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  transform: scale(1.05);
-}
-
-/* Estilo do pseudo-elemento após o link com destaque */
-a.destaque::after {
-  background: currentColor;
-  bottom: 0;
-  content: '';
-  display: block;
-  height: 2px;
-  left: 0;
-  position: absolute;
-  transform: scaleX(0);
-  transform-origin: bottom right;
-  transition: transform .6s ease, background-color .6s ease;
-  width: 100%;
-}
-
-/* Estilo do pseudo-elemento após o link com destaque ao passar o rato */
-a.destaque:hover::after {
-  background-color: transparent;
-  transform: scaleX(1);
-  transform-origin: bottom left;
-}
-
-
-.related-post-title a:hover {
-	color: var(--contrast-2)!important;
-}

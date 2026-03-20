@@ -16,16 +16,12 @@
 .smpt-page-nav__link {
   display: flex;
   align-items: center;
-  color: var(--accent);
   font-family: Atma, sans-serif;
   font-size: 1.5em;
   text-decoration: none !important;
   gap: 0.3em;
 }
 
-.smpt-page-nav__link:hover {
-  color: var(--contrast);
-}
 
 .smpt-page-nav__link--next {
   margin-left: auto;

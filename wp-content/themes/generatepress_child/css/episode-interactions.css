@@ -9,10 +9,6 @@
   padding: 8px 10px;
 }
 
-.smpt-ep-interactions.is-loading {
-  opacity: 0.5;
-  pointer-events: none;
-}
 
 /* --- Action Bar --- */
 
@@ -50,7 +46,7 @@
 }
 
 .smpt-ep-star svg {
-  fill: #ddd;
+  fill: var(--contrast-3);
   display: block;
   position: absolute;
   top: 0;
@@ -174,7 +170,7 @@
   align-items: center;
   gap: 4px;
   font-size: 0.82em;
-  color: #888;
+  color: var(--contrast-2);
   padding: 4px 8px;
   border-radius: 12px;
   background: rgba(0,0,0,0.04);
@@ -185,15 +181,15 @@
 /* --- Disabled buttons (logged-out) --- */
 
 .smpt-ep-btn--disabled {
-  background: #666 !important;
-  color: #aaa !important;
+  background: var(--contrast-2) !important;
+  color: var(--contrast-3) !important;
   cursor: not-allowed !important;
   pointer-events: auto;
 }
 
 .smpt-dl.smpt-ep-btn--disabled {
-  background: #555 !important;
-  color: #999 !important;
+  background: var(--contrast-2) !important;
+  color: var(--contrast-3) !important;
 }
 
 /* --- Like confetti burst (adapted from fanfiction plugin) --- */
@@ -359,7 +355,7 @@
 .smpt-ep-watched-btn.is-watched {
   background: rgba(38, 120, 220, 0.12);
   border-color: var(--accent, #2678dc);
-  color: #1a5dab;
+  color: var(--accent);
 }
 
 /* --- Header state markers --- */
@@ -378,7 +374,7 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  color: #ddd;
+  color: var(--contrast-3);
   vertical-align: middle;
   transition: color 0.2s, filter 0.2s;
 }
@@ -416,7 +412,7 @@
 .smpt-ep-seen-check.is-watched {
   background: var(--accent, #2678dc);
   border-color: var(--accent, #2678dc);
-  color: #fff;
+  color: var(--base-3);
 }
 
 /* --- Quero ver / Favorito buttons --- */
@@ -535,7 +531,7 @@
 
 .smpt-ep-comment-save {
   background: var(--accent, #2678dc);
-  color: #fff;
+  color: var(--base-3);
   border-color: var(--accent, #2678dc);
 }
 
@@ -574,7 +570,7 @@
 .smpt-ep-comment-submit {
   align-self: flex-end;
   background: var(--accent, #2678dc);
-  color: #fff;
+  color: var(--base-3);
   border: none;
   border-radius: 8px;
   padding: 8px 20px;
@@ -628,7 +624,6 @@
 }
 
 .smpt-ep-watched-list a {
-  color: #2678dc;
   text-decoration: none;
   font-weight: 600;
 }
