@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   var body = document.body;
   var htmlEl = document.documentElement;
+  var header = document.querySelector(".site-header");
   var insideNavigation = nav.querySelector(".inside-navigation");
   var mainNav = nav.querySelector(".main-nav");
   var mainMenu = mainNav ? mainNav.querySelector("ul") : null;
@@ -23,7 +24,29 @@ document.addEventListener("DOMContentLoaded", function () {
   var lastHandledMobileTouchAt = 0;
 
   sentinel.className = "smpt-sticky-nav-sentinel";
-  nav.parentNode.insertBefore(sentinel, nav);
+
+  function placeStickySentinel() {
+    var navAboveHeader = body.classList.contains("nav-above-header");
+    var parent = nav.parentNode;
+
+    if (!parent) {
+      return;
+    }
+
+    if (navAboveHeader && header && header.parentNode === parent) {
+      if (header.nextSibling !== sentinel) {
+        parent.insertBefore(sentinel, header.nextSibling);
+      }
+
+      return;
+    }
+
+    if (nav.previousSibling !== sentinel) {
+      parent.insertBefore(sentinel, nav);
+    }
+  }
+
+  placeStickySentinel();
 
   function getAdminOffset() {
     if (!body.classList.contains("admin-bar")) {
@@ -58,6 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function evaluateStickyState() {
+    placeStickySentinel();
     syncStickyState(sentinel.getBoundingClientRect().top <= getAdminOffset());
   }
 

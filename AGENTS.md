@@ -127,6 +127,21 @@ Use Chrome DevTools MCP for:
 - Console/runtime JS errors
 - Performance and network inspection
 
+Chrome DevTools MCP prerequisite:
+
+- Chrome must be running with remote debugging enabled on port `9222` before MCP tools can attach.
+- Preferred startup command on Windows:
+
+```powershell
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+  --remote-debugging-port=9222 `
+  --user-data-dir="$env:TEMP\codex-chrome-smpt" `
+  about:blank
+```
+
+- Verify the debugger is available by opening `http://127.0.0.1:9222/json/version`.
+- If DevTools MCP cannot connect, launch Chrome with the command above before continuing inspection.
+
 Examples:
 
 - Find which parent rule overrides child CSS.
@@ -397,6 +412,14 @@ From project root (`app/public`):
 ```bash
 # 1) JavaScript test tooling
 npm run test:smpt:setup
+```
+
+```powershell
+# 2) Chrome for DevTools MCP inspection
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+  --remote-debugging-port=9222 `
+  --user-data-dir="$env:TEMP\codex-chrome-smpt" `
+  about:blank
 ```
 
 Then run:

@@ -16,13 +16,38 @@ function smpt_register_page_header_image_size() {
 add_action( 'after_setup_theme', 'smpt_register_page_header_image_size', 20 );
 
 /**
+ * Determine if the current page should use the custom title band below header media.
+ *
+ * This keeps ordinary pages on the native GeneratePress title flow and only
+ * switches to the custom band when a featured image/video actually exists.
+ *
+ * @param int $post_id Post ID.
+ * @return bool
+ */
+function smpt_page_uses_custom_title_band( $post_id = 0 ) {
+	if ( ! $post_id ) {
+		$post_id = get_queried_object_id();
+	}
+
+	if ( ! $post_id || ! is_page( $post_id ) ) {
+		return false;
+	}
+
+	if ( has_post_thumbnail( $post_id ) ) {
+		return true;
+	}
+
+	return function_exists( 'smpt_page_has_featured_video' ) && smpt_page_has_featured_video( $post_id );
+}
+
+/**
  * Inject the page title below the featured image block.
  *
  * Runs after generate_featured_page_header (priority 10) on the same hook.
  * Reuses the existing .single-post-title class for styling.
  */
 function smpt_page_title_below_featured_image() {
-	if ( ! is_page() ) {
+	if ( ! is_page() || ! smpt_page_uses_custom_title_band() ) {
 		return;
 	}
 	printf(
@@ -39,7 +64,7 @@ add_action( 'generate_after_header', 'smpt_page_title_below_featured_image', 15 
  * @return bool
  */
 function smpt_hide_native_page_title( $show ) {
-	if ( is_page() ) {
+	if ( is_page() && smpt_page_uses_custom_title_band() ) {
 		return false;
 	}
 	return $show;

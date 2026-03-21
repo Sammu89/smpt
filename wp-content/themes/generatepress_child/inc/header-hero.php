@@ -20,16 +20,6 @@ function smpt_register_header_hero() {
 add_action( 'after_setup_theme', 'smpt_register_header_hero', 20 );
 
 /**
- * Keep the site navigation below the branded hero.
- *
- * @return string
- */
-function smpt_force_navigation_below_header() {
-	return 'nav-below-header';
-}
-add_filter( 'generate_navigation_location', 'smpt_force_navigation_below_header' );
-
-/**
  * Render the branded header hero markup.
  */
 function smpt_render_header_hero() {

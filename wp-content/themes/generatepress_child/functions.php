@@ -16,6 +16,7 @@ $smpt_theme_includes = array(
 	'/inc/infoboxes.php',
 	'/inc/navigation.php',
 	'/inc/page-nav.php',
+	'/inc/post-single.php',
 	'/inc/tables.php',
 );
 
