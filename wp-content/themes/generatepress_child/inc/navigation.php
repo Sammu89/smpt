@@ -272,13 +272,6 @@ function smpt_render_offcanvas_mobile_navigation() {
 	<div class="smpt-mobile-menu" id="smpt-mobile-menu" hidden aria-hidden="true">
 		<div class="smpt-mobile-menu__overlay" data-smpt-mobile-close tabindex="-1"></div>
 		<aside class="smpt-mobile-menu__panel" aria-label="<?php echo esc_attr__( 'Menu lateral', 'generatepress' ); ?>">
-			<div class="smpt-mobile-menu__header">
-				<p class="smpt-mobile-menu__eyebrow"><?php esc_html_e( 'Menu', 'generatepress' ); ?></p>
-				<button type="button" class="smpt-mobile-menu__close" data-smpt-mobile-close aria-label="<?php echo esc_attr__( 'Fechar menu', 'generatepress' ); ?>">
-					<span aria-hidden="true">Fechar</span>
-				</button>
-			</div>
-
 			<div class="smpt-mobile-menu__search">
 				<form method="get" class="smpt-mobile-menu__search-form" action="<?php echo esc_url( home_url( '/' ) ); ?>">
 					<label class="screen-reader-text" for="smpt-mobile-menu-search"><?php esc_html_e( 'Pesquisar por:', 'generatepress' ); ?></label>
@@ -293,10 +286,15 @@ function smpt_render_offcanvas_mobile_navigation() {
 				</form>
 			</div>
 
-			<section class="smpt-mobile-menu__section" aria-labelledby="smpt-mobile-menu-title">
-				<h2 class="smpt-mobile-menu__title" id="smpt-mobile-menu-title"><?php esc_html_e( 'Navegação principal', 'generatepress' ); ?></h2>
+			<section class="smpt-mobile-menu__section" aria-label="<?php echo esc_attr__( 'Navegação principal', 'generatepress' ); ?>">
 				<div class="smpt-mobile-menu__nav" data-smpt-mobile-menu-root></div>
 			</section>
+
+			<div class="smpt-mobile-menu__footer">
+				<button type="button" class="smpt-mobile-menu__close" data-smpt-mobile-close aria-label="<?php echo esc_attr__( 'Fechar menu', 'generatepress' ); ?>">
+					<span aria-hidden="true">Fechar</span>
+				</button>
+			</div>
 		</aside>
 	</div>
 	<?php

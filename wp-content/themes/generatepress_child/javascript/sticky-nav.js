@@ -22,6 +22,12 @@ document.addEventListener("DOMContentLoaded", function () {
   var autoCollapseClass = "smpt-nav-auto-collapsed";
   var lastFocusedElement = null;
   var lastHandledMobileTouchAt = 0;
+  var priorityPlusClass = "smpt-nav-priority-plus";
+  var maisItem = null;
+  var maisSubMenu = null;
+  var maisWidth = 0;
+  var hiddenItems = [];
+  var isSyncing = false;
 
   sentinel.className = "smpt-sticky-nav-sentinel";
 
@@ -291,6 +297,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var disclosure = getDirectChildByClass(menuItem, "smpt-mobile-parent-disclosure");
     var toggle = getDirectChildByClass(menuItem, "smpt-mobile-submenu-toggle");
     var label = toggle ? toggle.querySelector(".smpt-mobile-submenu-toggle__label") : null;
+    var disclosureLabel = disclosure ? disclosure.querySelector(".smpt-mobile-parent-disclosure__label") : null;
 
     menuItem.classList.toggle("is-open", expanded);
 
@@ -312,6 +319,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (label) {
       label.textContent = expanded ? "-" : "+";
     }
+
+    if (disclosureLabel) {
+      disclosureLabel.textContent = expanded ? "-" : "+";
+    }
   }
 
   function cloneMenuForOffcanvas() {
@@ -331,8 +342,6 @@ document.addEventListener("DOMContentLoaded", function () {
       var submenu = getDirectChildByTag(menuItem, "UL");
       var inlineToggle = link ? link.querySelector(".dropdown-menu-toggle") : null;
       var button = null;
-      var linkHref = link ? (link.getAttribute("href") || "").trim().toLowerCase() : "";
-      var useDisclosureButton = !!submenu && (linkHref === "#" || linkHref === "" || linkHref === "javascript:void(0)");
       var shouldOpen = openStateKeys.indexOf(getMenuItemStateKey(menuItem)) !== -1 ||
         menuItem.classList.contains("smpt-force-open") ||
         menuItem.classList.contains("current-menu-item") ||
@@ -344,11 +353,14 @@ document.addEventListener("DOMContentLoaded", function () {
         inlineToggle.remove();
       }
 
-      if (link && useDisclosureButton) {
+      if (link && submenu) {
         button = document.createElement("button");
         button.type = "button";
         button.className = "smpt-mobile-parent-link smpt-mobile-parent-disclosure";
-        button.innerHTML = link.innerHTML;
+        button.innerHTML =
+          '<span class="smpt-mobile-parent-disclosure__content">' + link.innerHTML + '</span>' +
+          '<span class="screen-reader-text">Alternar submenu</span>' +
+          '<span class="smpt-mobile-parent-disclosure__label" aria-hidden="true">+</span>';
         menuItem.replaceChild(button, link);
       } else if (link) {
         button = document.createElement("button");
@@ -472,7 +484,270 @@ document.addEventListener("DOMContentLoaded", function () {
     return reservedWidth;
   }
 
+  function buildMaisItem() {
+    if (maisItem) {
+      return;
+    }
+
+    var maisCloseDelay = 300;
+    var openMaisChildItem = null;
+
+    maisItem = document.createElement("li");
+    maisItem.className = "menu-item menu-item-has-children smpt-mais-item";
+
+    var link = document.createElement("a");
+    link.href = "#";
+    link.addEventListener("click", function (e) { e.preventDefault(); });
+
+    var textNode = document.createTextNode("Mais ");
+    link.appendChild(textNode);
+
+    var toggle = document.createElement("span");
+    toggle.setAttribute("role", "presentation");
+    toggle.className = "dropdown-menu-toggle";
+    toggle.innerHTML = '<span class="gp-icon icon-arrow"><svg viewBox="0 0 330 512" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"><path d="M305.913 197.085c0 2.266-1.133 4.815-2.833 6.514L171.087 335.593c-1.7 1.7-4.249 2.832-6.515 2.832s-4.815-1.133-6.515-2.832L26.064 203.599c-1.7-1.7-2.832-4.248-2.832-6.514s1.132-4.816 2.832-6.515l14.162-14.163c1.7-1.699 3.966-2.832 6.515-2.832 2.266 0 4.815 1.133 6.515 2.832l111.316 111.317 111.316-111.317c1.7-1.699 4.249-2.832 6.515-2.832s4.815 1.133 6.515 2.832l14.162 14.163c1.7 1.7 2.833 4.249 2.833 6.515z" /></svg></span>';
+    link.appendChild(toggle);
+
+    maisSubMenu = document.createElement("ul");
+    maisSubMenu.className = "sub-menu";
+
+    maisItem.appendChild(link);
+    maisItem.appendChild(maisSubMenu);
+
+    var maisCloseTimer = null;
+
+    function getMaisDirectChildItem(target) {
+      var current = target && target.nodeType === 1 ? target : (target ? target.parentElement : null);
+
+      while (current && current.parentElement !== maisSubMenu) {
+        current = current.parentElement;
+      }
+
+      return current && current.parentElement === maisSubMenu ? current : null;
+    }
+
+    function itemHasNestedMaisSubmenu(menuItem) {
+      return !!getDirectChildByTag(menuItem, "UL");
+    }
+
+    function positionMaisChildSubmenu(menuItem) {
+      if (!menuItem || !itemHasNestedMaisSubmenu(menuItem)) {
+        return;
+      }
+
+      var submenu = getDirectChildByTag(menuItem, "UL");
+
+      if (!submenu) {
+        return;
+      }
+
+      menuItem.classList.remove("smpt-mais-child-open-left");
+      submenu.style.maxWidth = "";
+      submenu.style.left = "calc(100% - 0.25rem)";
+      submenu.style.right = "";
+      submenu.style.marginLeft = "";
+      submenu.style.marginRight = "";
+
+      var viewportPadding = 16;
+      var maxViewportWidth = Math.max(220, window.innerWidth - (viewportPadding * 2));
+      submenu.style.maxWidth = maxViewportWidth + "px";
+
+      var rect = submenu.getBoundingClientRect();
+
+      if (rect.right > window.innerWidth - viewportPadding) {
+        menuItem.classList.add("smpt-mais-child-open-left");
+        submenu.style.left = (-1 * (rect.width + 6)) + "px";
+        submenu.style.right = "auto";
+        submenu.style.marginLeft = "0";
+        submenu.style.marginRight = "0";
+        rect = submenu.getBoundingClientRect();
+      }
+
+      if (rect.left < viewportPadding) {
+        menuItem.classList.remove("smpt-mais-child-open-left");
+        submenu.style.left = (viewportPadding - menuItem.getBoundingClientRect().left) + "px";
+        submenu.style.right = "auto";
+        submenu.style.marginLeft = "0";
+        submenu.style.marginRight = "0";
+      }
+    }
+
+    function scheduleMaisChildSubmenuPosition(menuItem) {
+      var submenu = menuItem ? getDirectChildByTag(menuItem, "UL") : null;
+
+      if (!submenu) {
+        return;
+      }
+
+      if (submenu.smptPlacementFrame) {
+        window.cancelAnimationFrame(submenu.smptPlacementFrame);
+        submenu.smptPlacementFrame = null;
+      }
+
+      if (submenu.smptPlacementTimeout) {
+        window.clearTimeout(submenu.smptPlacementTimeout);
+        submenu.smptPlacementTimeout = null;
+      }
+
+      submenu.smptPlacementFrame = window.requestAnimationFrame(function () {
+        submenu.smptPlacementFrame = null;
+        positionMaisChildSubmenu(menuItem);
+      });
+
+      submenu.smptPlacementTimeout = window.setTimeout(function () {
+        submenu.smptPlacementTimeout = null;
+        positionMaisChildSubmenu(menuItem);
+      }, 180);
+    }
+
+    function setMaisChildExpandedState(menuItem, expanded) {
+      if (!menuItem || !itemHasNestedMaisSubmenu(menuItem)) {
+        return;
+      }
+
+      var submenu = getDirectChildByTag(menuItem, "UL");
+      menuItem.classList.toggle("smpt-mais-child-open", expanded);
+
+      var menuLink = getDirectChildByTag(menuItem, "A");
+
+      if (menuLink) {
+        menuLink.setAttribute("aria-expanded", expanded ? "true" : "false");
+      }
+
+      if (submenu) {
+        submenu.style.left = "";
+        submenu.style.right = "";
+        submenu.style.maxWidth = "";
+        submenu.style.marginLeft = "";
+        submenu.style.marginRight = "";
+      }
+
+      if (expanded) {
+        scheduleMaisChildSubmenuPosition(menuItem);
+      } else {
+        menuItem.classList.remove("smpt-mais-child-open-left");
+      }
+    }
+
+    function setOpenMaisChild(menuItem) {
+      if (!menuItem || !itemHasNestedMaisSubmenu(menuItem)) {
+        if (openMaisChildItem) {
+          setMaisChildExpandedState(openMaisChildItem, false);
+          openMaisChildItem = null;
+        }
+
+        return;
+      }
+
+      if (openMaisChildItem === menuItem) {
+        return;
+      }
+
+      if (openMaisChildItem) {
+        setMaisChildExpandedState(openMaisChildItem, false);
+      }
+
+      openMaisChildItem = menuItem;
+      setMaisChildExpandedState(openMaisChildItem, true);
+    }
+
+    maisItem.addEventListener("mouseenter", function () {
+      if (maisCloseTimer) {
+        clearTimeout(maisCloseTimer);
+        maisCloseTimer = null;
+      }
+
+      maisItem.classList.add("sfHover");
+    });
+
+    maisItem.addEventListener("mouseleave", function () {
+      maisCloseTimer = setTimeout(function () {
+        maisCloseTimer = null;
+        setOpenMaisChild(null);
+        maisItem.classList.remove("sfHover");
+      }, maisCloseDelay);
+    });
+
+    maisSubMenu.addEventListener("focusin", function (event) {
+      var directItem = getMaisDirectChildItem(event.target);
+
+      if (!directItem || !itemHasNestedMaisSubmenu(directItem)) {
+        return;
+      }
+
+      setOpenMaisChild(directItem);
+      maisItem.classList.add("sfHover");
+    });
+
+    maisSubMenu.addEventListener("mouseover", function (event) {
+      var directItem = getMaisDirectChildItem(event.target);
+
+      if (!directItem || !itemHasNestedMaisSubmenu(directItem)) {
+        return;
+      }
+
+      setOpenMaisChild(directItem);
+      maisItem.classList.add("sfHover");
+    });
+
+    maisSubMenu.addEventListener("click", function (event) {
+      var menuLink = event.target.closest("a");
+      var directItem = getMaisDirectChildItem(event.target);
+
+      if (!menuLink || !directItem || !itemHasNestedMaisSubmenu(directItem)) {
+        return;
+      }
+
+      var href = (menuLink.getAttribute("href") || "").trim().toLowerCase();
+
+      if (href !== "#" && href !== "" && href !== "javascript:void(0)") {
+        return;
+      }
+
+      event.preventDefault();
+      setOpenMaisChild(directItem);
+      maisItem.classList.add("sfHover");
+    });
+
+    window.addEventListener("resize", function () {
+      if (openMaisChildItem && maisItem.classList.contains("sfHover")) {
+        positionMaisChildSubmenu(openMaisChildItem);
+      }
+    });
+  }
+
+  function measureMaisWidth() {
+    if (!mainMenu || !maisItem) {
+      return 80;
+    }
+
+    mainMenu.appendChild(maisItem);
+    var w = maisItem.getBoundingClientRect().width;
+    mainMenu.removeChild(maisItem);
+
+    return w || 80;
+  }
+
+  function resetPriorityPlus() {
+    hiddenItems.forEach(function (item) {
+      item.style.display = "";
+    });
+
+    hiddenItems = [];
+
+    if (maisItem && maisItem.parentNode) {
+      maisItem.parentNode.removeChild(maisItem);
+    }
+
+    if (maisSubMenu) {
+      maisSubMenu.innerHTML = "";
+    }
+
+    nav.classList.remove(priorityPlusClass);
+  }
+
   function resetExpandedState() {
+    resetPriorityPlus();
     nav.classList.remove(autoCollapseClass);
     nav.classList.remove("toggled");
     closeOffcanvasMenu({ restoreFocus: false });
@@ -491,13 +766,18 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+    if (isSyncing) {
+      return;
+    }
+
+    isSyncing = true;
+
     var wasCollapsed = nav.classList.contains(autoCollapseClass);
     var wasToggled = nav.classList.contains("toggled");
     var previousFlexWrap = mainMenu.style.flexWrap;
-    var insideWidth = 0;
-    var availableWidth = 0;
-    var menuWidth = 0;
-    var shouldCollapse = false;
+
+    // Reset everything to natural state for measurement.
+    resetPriorityPlus();
 
     if (wasCollapsed) {
       nav.classList.remove(autoCollapseClass);
@@ -509,33 +789,92 @@ document.addEventListener("DOMContentLoaded", function () {
 
     mainMenu.style.flexWrap = "nowrap";
 
-    insideWidth = insideNavigation.getBoundingClientRect().width;
-    availableWidth = insideWidth - getReservedWidth() - getCollapseBuffer();
-    menuWidth = mainMenu.scrollWidth;
-    shouldCollapse = menuWidth > Math.max(0, availableWidth);
+    var insideWidth = insideNavigation.getBoundingClientRect().width;
+    var availableWidth = insideWidth - getReservedWidth() - getCollapseBuffer();
+    var menuWidth = mainMenu.scrollWidth;
 
+    // No overflow — everything fits.
+    if (menuWidth <= Math.max(0, availableWidth)) {
+      mainMenu.style.flexWrap = previousFlexWrap;
+      resetExpandedState();
+      updateStickySpacer();
+      requestAnimationFrame(function () { isSyncing = false; });
+      return;
+    }
+
+    // Overflow detected — try priority plus (move up to 3 items to "Mais").
+    buildMaisItem();
+
+    if (!maisWidth) {
+      maisWidth = measureMaisWidth();
+    }
+
+    var items = Array.prototype.filter.call(mainMenu.children, function (child) {
+      return child !== maisItem && child.classList.contains("menu-item");
+    });
+
+    var itemWidths = items.map(function (item) {
+      return { element: item, width: item.getBoundingClientRect().width };
+    });
+
+    var totalWidth = itemWidths.reduce(function (sum, info) {
+      return sum + info.width;
+    }, 0);
+
+    var targetWidth = availableWidth - maisWidth;
+    var toHide = [];
+    var remainingWidth = totalWidth;
+
+    for (var i = itemWidths.length - 1; i >= 0; i--) {
+      if (remainingWidth <= targetWidth) {
+        break;
+      }
+
+      toHide.unshift(itemWidths[i]);
+      remainingWidth -= itemWidths[i].width;
+    }
+
+    if (toHide.length >= 1 && toHide.length <= 3 && remainingWidth <= targetWidth) {
+      // Priority plus: hide overflow items, show them in the "Mais" dropdown.
+      maisSubMenu.innerHTML = "";
+
+      toHide.forEach(function (info) {
+        info.element.style.display = "none";
+        hiddenItems.push(info.element);
+
+        var clone = info.element.cloneNode(true);
+        clone.style.display = "";
+        removeIdsFromTree(clone);
+        maisSubMenu.appendChild(clone);
+      });
+
+      mainMenu.appendChild(maisItem);
+      nav.classList.add(priorityPlusClass);
+
+      mainMenu.style.flexWrap = previousFlexWrap;
+      mainMenu.setAttribute("aria-hidden", "false");
+      menuToggle.setAttribute("aria-expanded", "false");
+      updateStickySpacer();
+      requestAnimationFrame(function () { isSyncing = false; });
+      return;
+    }
+
+    // Too many items overflow (>3) or still doesn't fit — full hamburger.
     mainMenu.style.flexWrap = previousFlexWrap;
 
     if (wasToggled) {
       nav.classList.add("toggled");
     }
 
-    if (wasCollapsed) {
-      nav.classList.add(autoCollapseClass);
-    }
+    nav.classList.add(autoCollapseClass);
 
-    if (shouldCollapse) {
-      nav.classList.add(autoCollapseClass);
-
-      if (!nav.classList.contains("toggled")) {
-        menuToggle.setAttribute("aria-expanded", "false");
-        mainMenu.setAttribute("aria-hidden", "true");
-      }
-    } else {
-      resetExpandedState();
+    if (!nav.classList.contains("toggled")) {
+      menuToggle.setAttribute("aria-expanded", "false");
+      mainMenu.setAttribute("aria-hidden", "true");
     }
 
     updateStickySpacer();
+    requestAnimationFrame(function () { isSyncing = false; });
   }
 
   function requestLayoutSync() {
@@ -579,6 +918,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if ("ResizeObserver" in window) {
     var layoutObserver = new ResizeObserver(function () {
+      if (isSyncing) {
+        return;
+      }
+
       updateStickySpacer();
       requestLayoutSync();
     });
@@ -595,7 +938,46 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   if ("MutationObserver" in window && mainMenu) {
-    new MutationObserver(function () {
+    new MutationObserver(function (mutations) {
+      if (isSyncing) {
+        return;
+      }
+
+      var relevant = mutations.some(function (m) {
+        // Ignore state changes inside the synthetic "Mais" menu.
+        if (
+          m.type === "attributes" &&
+          maisItem &&
+          m.target &&
+          typeof m.target.nodeType === "number" &&
+          m.target.nodeType === 1 &&
+          maisItem.contains(m.target)
+        ) {
+          return false;
+        }
+
+        if (m.type === "attributes") {
+          var attr = m.attributeName || "";
+          return attr !== "aria-hidden" && attr !== "aria-expanded" && attr !== "aria-label";
+        }
+
+        // Ignore childList changes caused by adding/removing the Mais item.
+        if (m.type === "childList") {
+          var isOnlyMais = Array.prototype.every.call(m.addedNodes, function (n) { return n === maisItem; })
+            && Array.prototype.every.call(m.removedNodes, function (n) { return n === maisItem; });
+
+          if (isOnlyMais) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      if (!relevant) {
+        return;
+      }
+
       requestLayoutSync();
 
       if (!htmlEl.classList.contains("smpt-mobile-menu-open")) {
@@ -605,7 +987,8 @@ document.addEventListener("DOMContentLoaded", function () {
       childList: true,
       subtree: true,
       characterData: true,
-      attributes: true
+      attributes: true,
+      attributeFilter: ["class", "aria-hidden", "aria-expanded", "aria-label"]
     });
   }
 

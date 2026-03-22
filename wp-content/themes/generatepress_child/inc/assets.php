@@ -55,7 +55,8 @@ if ( ! function_exists( 'smpt_is_episode_page' ) ) {
 function smpt_generatepress_enqueue_styles() {
 	$theme           = wp_get_theme();
 	$version         = $theme->get( 'Version' );
-	$noticias_ver    = smpt_child_asset_version( 'css/noticias.css', $version );
+	$archive_ver     = smpt_child_asset_version( 'css/archive-cards.css', $version );
+	$post_single_ver = smpt_child_asset_version( 'css/post-single.css', $version );
 	$infobox_ver     = smpt_child_asset_version( 'css/infobox.css', $version );
 	$headers_ver     = smpt_child_asset_version( 'css/headers.css', $version );
 	$header_ver      = smpt_child_asset_version( 'css/header.css', $version );
@@ -67,10 +68,16 @@ function smpt_generatepress_enqueue_styles() {
 	wp_enqueue_style( 'dashicons' );
 
 	wp_enqueue_style(
-		'noticias-style',
-		get_stylesheet_directory_uri() . '/css/noticias.css',
+		'smpt-archive-cards-style',
+		get_stylesheet_directory_uri() . '/css/archive-cards.css',
 		array( 'generate-style' ),
-		$noticias_ver
+		$archive_ver
+	);
+	wp_enqueue_style(
+		'smpt-post-single-style',
+		get_stylesheet_directory_uri() . '/css/post-single.css',
+		array( 'generate-style' ),
+		$post_single_ver
 	);
 	wp_enqueue_style(
 		'infobox-style',

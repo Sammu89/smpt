@@ -1,0 +1,175 @@
+/* Archive Card Grid */
+
+.smpt-archive-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.no-sidebar .smpt-archive-grid {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Card */
+
+.smpt-archive-card .inside-article {
+    padding: 0;
+    background: var(--base-3);
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: box-shadow 0.2s;
+}
+
+.smpt-archive-card .inside-article:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* Image */
+
+.smpt-archive-card__image {
+    position: relative;
+}
+
+.smpt-archive-card__image img {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    display: block;
+}
+
+/* Category badges */
+
+.smpt-archive-card__badges {
+    position: absolute;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.smpt-archive-card__badge {
+    background: var(--accent);
+    color: var(--base-3);
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    line-height: 1.4;
+    text-decoration: none;
+}
+
+.smpt-archive-card__badge:hover,
+.smpt-archive-card__badge:visited,
+.smpt-archive-card__badge:focus {
+    color: var(--base-3);
+}
+
+.smpt-archive-card__badge--primary {
+    font-size: 0.75rem;
+}
+
+.smpt-archive-card__badge--secondary {
+    font-size: 0.65rem;
+}
+
+/* Body */
+
+.smpt-archive-card__body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.smpt-archive-card__body .entry-header {
+    margin-bottom: 0.5rem;
+}
+
+.smpt-archive-card__body .entry-title {
+    font-size: 1.25rem;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.smpt-archive-card__body .entry-title a {
+    color: var(--contrast);
+    text-decoration: none;
+}
+
+.smpt-archive-card__body .entry-title a:hover {
+    color: var(--accent);
+}
+
+/* Meta */
+
+.smpt-archive-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--contrast-2);
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Excerpt */
+
+.smpt-archive-card .entry-summary {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+/* Footer */
+
+.smpt-archive-card__footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.smpt-archive-card__comments {
+    color: var(--contrast-2);
+    font-size: 0.85rem;
+}
+
+.smpt-archive-card__read-more {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    margin-left: auto;
+}
+
+.smpt-archive-card__read-more:hover {
+    text-decoration: underline;
+}
+
+/* Pagination */
+
+.nav-links {
+    text-align: center;
+}
+
+.nav-links a,
+.nav-links span:not(.elementor-screen-only) {
+    color: var(--base-3);
+    background-color: var(--contrast);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 32px;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+    .smpt-archive-grid {
+        grid-template-columns: 1fr;
+    }
+}

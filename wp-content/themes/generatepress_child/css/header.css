@@ -187,8 +187,8 @@ body.smpt-debug .smpt-debug-exclusion-zone {
 	content: "★";
 	color: #ffd700;
 	display: inline-block;
-	margin-right: 0.5em;
-	width: 1em;
+	margin-right: 0.28em;
+	width: 0.72em;
 	opacity: 0;
 	transition: opacity 120ms ease;
 }
@@ -198,8 +198,15 @@ body.smpt-debug .smpt-debug-exclusion-zone {
 	opacity: 1;
 }
 
-.main-navigation:not(.toggled) .main-nav ul ul li.menu-item-has-children > a::before {
+.main-navigation:not(.toggled) .main-nav ul ul li.menu-item-has-children > a:hover::before,
+.main-navigation:not(.toggled) .main-nav ul ul li.menu-item-has-children.sfHover > a::before {
 	opacity: 1;
+}
+
+.main-navigation:not(.toggled) .main-nav > ul > li > .sub-menu ul.sub-menu li a::before {
+	content: "-";
+	color: #ffd700;
+	font-weight: 900;
 }
 
 .main-navigation:not(.toggled) .main-nav > ul > li > .sub-menu ul.sub-menu {
@@ -239,6 +246,55 @@ body.smpt-debug .smpt-debug-exclusion-zone {
 	padding-top: 0.25rem;
 	opacity: 1;
 	pointer-events: auto;
+}
+
+/* The nested items inside the priority-plus "Mais" menu need to become
+   hoverable immediately, otherwise the submenu can close while the pointer is
+   still travelling to the last item. Keep the fade, but remove the height race. */
+.main-navigation:not(.toggled) .main-nav > ul > li.smpt-mais-item > .sub-menu > li.menu-item-has-children {
+	position: relative;
+}
+
+.main-navigation:not(.toggled) .main-nav > ul > li.smpt-mais-item > .sub-menu > li.menu-item-has-children > .sub-menu {
+	position: absolute;
+	top: 0;
+	left: calc(100% - 0.25rem);
+	right: auto;
+	min-width: max-content;
+	margin-left: 0.35rem;
+	padding: 0 0 0 0;
+	border: 1px solid var(--contrast);
+	background: var(--base-3);
+	box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.1);
+	z-index: 5;
+	transition: opacity 160ms ease, padding-top 160ms ease;
+}
+
+/* Inside the compact "Mais" panel, direct child flyouts are managed by the
+   child-theme script so they can keep desktop hover behavior without pushing
+   sibling items around or overflowing the viewport. */
+.main-navigation:not(.toggled) .main-nav > ul > li.smpt-mais-item > .sub-menu > li:hover > .sub-menu,
+.main-navigation:not(.toggled) .main-nav > ul > li.smpt-mais-item > .sub-menu > li.sfHover > .sub-menu,
+.main-navigation:not(.toggled) .main-nav > ul > li.smpt-mais-item > .sub-menu > li:focus-within > .sub-menu {
+	max-height: 0;
+	padding-top: 0;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.main-navigation:not(.toggled) .main-nav > ul > li.smpt-mais-item > .sub-menu > li.smpt-mais-child-open > .sub-menu,
+.main-navigation:not(.toggled) .main-nav > ul > li.smpt-mais-item > .sub-menu > li.smpt-mais-child-open:focus-within > .sub-menu {
+	max-height: 40rem;
+	padding-top: 0.25rem;
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.main-navigation:not(.toggled) .main-nav > ul > li.smpt-mais-item > .sub-menu > li.smpt-mais-child-open-left > .sub-menu {
+	left: auto;
+	right: calc(100% - 0.25rem);
+	margin-left: 0;
+	margin-right: 0.35rem;
 }
 
 .nav-below-header .main-navigation::before,
@@ -410,20 +466,11 @@ body.smpt-mobile-menu-open {
 	overflow: hidden;
 }
 
-.smpt-mobile-menu__header,
 .smpt-mobile-menu__search,
-.smpt-mobile-menu__section {
+.smpt-mobile-menu__section,
+.smpt-mobile-menu__footer {
 	padding-left: 1.25rem;
 	padding-right: 1.25rem;
-}
-
-.smpt-mobile-menu__header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	padding-bottom: 1rem;
-	border-bottom: 1px solid rgba(186, 193, 205, 0.5);
 }
 
 .smpt-mobile-menu__eyebrow,
@@ -451,7 +498,7 @@ body.smpt-mobile-menu-open {
 }
 
 .smpt-mobile-menu__search {
-	padding-top: 1rem;
+	padding-top: 1.1rem;
 	padding-bottom: 1rem;
 	border-bottom: 1px solid rgba(186, 193, 205, 0.34);
 }
@@ -487,8 +534,17 @@ body.smpt-mobile-menu-open {
 .smpt-mobile-menu__section {
 	flex: 1 1 auto;
 	min-height: 0;
-	padding-top: 1rem;
+	padding-top: 0.85rem;
 	overflow-y: auto;
+}
+
+.smpt-mobile-menu__footer {
+	display: flex;
+	justify-content: flex-end;
+	padding-top: 0.85rem;
+	padding-bottom: 0.1rem;
+	border-top: 1px solid rgba(186, 193, 205, 0.34);
+	background: linear-gradient(180deg, rgba(247, 249, 253, 0.82) 0%, rgba(247, 249, 253, 0.98) 100%);
 }
 
 .smpt-mobile-menu__nav > ul,
@@ -544,6 +600,38 @@ body.smpt-mobile-menu-open {
 	cursor: pointer;
 }
 
+.smpt-mobile-side-nav li > .smpt-mobile-parent-disclosure {
+	justify-content: flex-start;
+}
+
+.smpt-mobile-side-nav .smpt-mobile-parent-disclosure__content {
+	display: flex;
+	align-items: center;
+	flex: 1 1 auto;
+	gap: 0.6rem;
+	min-width: 0;
+	white-space: normal;
+}
+
+.smpt-mobile-side-nav .smpt-mobile-parent-disclosure__label,
+.smpt-mobile-submenu-toggle__label {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	border-radius: 999px;
+	background: rgba(15, 31, 79, 0.08);
+	line-height: 1;
+}
+
+.smpt-mobile-side-nav .smpt-mobile-parent-disclosure__label {
+	flex: 0 0 auto;
+	margin-left: 0.85rem;
+	font-size: 1.05rem;
+	font-weight: 700;
+}
+
 .smpt-mobile-side-nav li:not([class*="current-menu-"]) > a:hover,
 .smpt-mobile-side-nav li:not([class*="current-menu-"]) > a:focus,
 .smpt-mobile-side-nav li:not([class*="current-menu-"]).sfHover > a,
@@ -555,6 +643,10 @@ body.smpt-mobile-menu-open {
 }
 
 .smpt-mobile-side-nav li > a .dashicons {
+	flex: 0 0 auto;
+}
+
+.smpt-mobile-side-nav .smpt-mobile-parent-disclosure__content .dashicons {
 	flex: 0 0 auto;
 }
 
@@ -585,11 +677,18 @@ body.smpt-mobile-menu-open {
 	font-weight: 500;
 }
 
+.smpt-mobile-side-nav .sub-menu li > .smpt-mobile-parent-disclosure {
+	padding-top: 0.75rem;
+	padding-bottom: 0.75rem;
+	font-size: 0.94rem;
+	font-weight: 500;
+}
+
 .smpt-mobile-side-nav .sub-menu li > a,
 .smpt-mobile-side-nav .sub-menu li > .smpt-mobile-parent-link {
 	display: flex;
-	align-items: center;
-	white-space: nowrap;
+	align-items: flex-start;
+	white-space: normal;
 }
 
 .smpt-mobile-side-nav .sub-menu li > a::before,
@@ -597,9 +696,24 @@ body.smpt-mobile-menu-open {
 	content: "★";
 	color: #ffd700;
 	display: inline-block;
-	flex: 0 0 1em;
-	width: 1em;
-	margin-right: 0.5em;
+	flex: 0 0 0.72em;
+	width: 0.72em;
+	margin-right: 0.28em;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.smpt-mobile-side-nav .sub-menu li > .smpt-mobile-parent-disclosure::before {
+	content: none;
+}
+
+.smpt-mobile-side-nav .sub-menu li > .smpt-mobile-parent-disclosure .smpt-mobile-parent-disclosure__content::before {
+	content: "★";
+	color: #ffd700;
+	display: inline-block;
+	flex: 0 0 0.72em;
+	width: 0.72em;
+	margin-right: 0.28em;
 	opacity: 0;
 	transition: opacity 120ms ease;
 }
@@ -609,6 +723,19 @@ body.smpt-mobile-menu-open {
 .smpt-mobile-side-nav .sub-menu li > .smpt-mobile-parent-link:hover::before,
 .smpt-mobile-side-nav .sub-menu li > .smpt-mobile-parent-link:focus::before {
 	opacity: 1;
+}
+
+.smpt-mobile-side-nav .sub-menu li > .smpt-mobile-parent-disclosure:hover .smpt-mobile-parent-disclosure__content::before,
+.smpt-mobile-side-nav .sub-menu li > .smpt-mobile-parent-disclosure:focus .smpt-mobile-parent-disclosure__content::before {
+	opacity: 1;
+}
+
+.smpt-mobile-side-nav .sub-menu .sub-menu li > a::before,
+.smpt-mobile-side-nav .sub-menu .sub-menu li > .smpt-mobile-parent-link::before,
+.smpt-mobile-side-nav .sub-menu .sub-menu li > .smpt-mobile-parent-disclosure .smpt-mobile-parent-disclosure__content::before {
+	content: "-";
+	color: #ffd700;
+	font-weight: 900;
 }
 
 .smpt-mobile-side-nav .smpt-mobile-login-panel-item {
@@ -690,16 +817,8 @@ body.smpt-mobile-menu-open {
 }
 
 .smpt-mobile-submenu-toggle__label {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.75rem;
-	height: 1.75rem;
-	border-radius: 999px;
-	background: rgba(15, 31, 79, 0.08);
 	font-size: 1.05rem;
 	font-weight: 700;
-	line-height: 1;
 }
 
 .main-navigation .smpt-account-link > a {
@@ -949,6 +1068,30 @@ body.smpt-mobile-menu-open {
 
 #site-navigation:not(.smpt-nav-auto-collapsed):not(.toggled) .main-nav > ul > li > a .dropdown-menu-toggle {
 	flex: 0 0 auto;
+}
+
+/* Sub-menu child indicators: always visible, arrow points down, vertically centred */
+.main-navigation:not(.toggled) .main-nav ul ul .menu-item-has-children > a {
+	display: flex;
+	align-items: center;
+}
+
+.main-navigation:not(.toggled) .main-nav ul ul .menu-item-has-children > a .dropdown-menu-toggle {
+	float: none;
+	height: auto;
+	padding: 0 0 0 0.4rem;
+	margin: 0;
+	display: inline-flex;
+	align-items: center;
+}
+
+.main-navigation:not(.toggled) .main-nav ul ul .menu-item-has-children > a .dropdown-menu-toggle .gp-icon svg {
+	transform: rotate(-90deg);
+}
+
+/* Priority Plus "Mais" item — inherits GP sub-menu behaviour */
+.smpt-mais-item > a {
+	cursor: pointer;
 }
 
 #site-navigation.smpt-nav-auto-collapsed .menu-toggle {

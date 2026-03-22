@@ -1,0 +1,161 @@
+.single .post-tags {
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--base);
+}
+
+.single-post .inside-article > .entry-header {
+    position: relative;
+}
+
+.single-post .inside-article > .entry-header .entry-title {
+    padding-right: 5rem;
+}
+
+.smpt-post-header-nav {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.smpt-post-header-nav__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.7rem;
+    border: 1px solid var(--contrast);
+    border-radius: 0;
+    color: var(--contrast);
+    font-family: "Yanone Kaffeesatz", Atma, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.smpt-post-header-nav__link:visited {
+    color: var(--contrast);
+}
+
+.smpt-post-header-nav__link:hover,
+.smpt-post-header-nav__link:focus,
+.smpt-post-header-nav__link:hover:visited,
+.smpt-post-header-nav__link:focus:visited {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.single-post .entry-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 1rem;
+}
+
+.smpt-read-time {
+    color: var(--contrast-2);
+}
+
+.smpt-post-header-divider {
+    margin: 0.9rem 0 0;
+    border: 0;
+    border-top: 1px solid var(--base);
+}
+
+.single-post .smpt-page-nav--article {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--base);
+    gap: 1rem;
+}
+
+.single-post .smpt-page-nav__link--article {
+    flex: 1 1 0;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--base);
+    border-radius: 0;
+    color: var(--contrast);
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+.single-post .smpt-page-nav__link--article:hover,
+.single-post .smpt-page-nav__link--article:focus {
+    border-color: var(--accent);
+    color: var(--contrast);
+}
+
+.single-post .smpt-page-nav__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.single-post .smpt-page-nav__meta {
+    color: var(--contrast-2);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.single-post .smpt-page-nav__title {
+    font-family: "Yanone Kaffeesatz", Atma, sans-serif;
+    font-size: 1.5rem;
+    line-height: 1.05;
+}
+
+.single-post .smpt-page-nav__link--article.smpt-page-nav__link--next {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.single-post .smpt-page-nav__link--article .smpt-page-nav__arrow {
+    flex: 0 0 auto;
+    font-family: "Yanone Kaffeesatz", Atma, sans-serif;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+#related-posts {
+	border-top: 0;
+}
+
+figure.related-post-media {
+	align-content: center;
+}
+
+@media only screen and (max-width: 767px) {
+    .single-post .inside-article > .entry-header .entry-title {
+        padding-right: 0;
+    }
+
+    .smpt-post-header-nav {
+        position: static;
+        justify-content: flex-end;
+        margin-bottom: 0.75rem;
+    }
+
+    .single-post .smpt-page-nav--article {
+        flex-direction: column;
+    }
+
+    .single-post .smpt-page-nav__link--article,
+    .single-post .smpt-page-nav__link--article.smpt-page-nav__link--next {
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    #related-posts .col {
+        min-height: unset;
+        margin-bottom: 35px;
+        float: none;
+    }
+}

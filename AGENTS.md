@@ -364,7 +364,7 @@ Practical notes:
 
 Very important:
 
-* Direct database access is available at `localhost:10011`
+* Direct database access: try `localhost:10011` first. If the connection fails, ask the user for the correct port before proceeding.
 * Database name: `local`
 * Username: `root`
 * Password: `root`
@@ -373,6 +373,19 @@ Very important:
 Practical note:
 
 * Prefer `wp-cli` first for WordPress-aware tasks before dropping to raw SQL.
+
+## Repo-Specific WP Admin Access
+
+* Admin login entry point: `/entrada/` — this is a custom login URL. Do NOT attempt to access `wp-login.php` or `wp-admin` directly without first authenticating via `/entrada/`.
+* Username: `sammu89`
+* Password: `Acer@l1912`
+* If login fails, reset the password via WP-CLI before retrying:
+
+```bash
+wp user update sammu89 --user_pass="Acer@l1912"
+```
+
+* `wp-admin` is only accessible after a valid session has been established through `/entrada/`. Direct access to `wp-admin` without prior authentication via `/entrada/` will not work.
 
 ## Repo-Specific GA4 Export Guidance
 
@@ -404,6 +417,146 @@ Practical note:
 
 * This exporter writes aggregated GA4 report data, metadata, custom dimension definitions, and custom metric definitions.
 * If you need raw event-level GA4 export, use GA4 BigQuery export instead.
+
+## MCP Server Setup: Chrome DevTools + Playwright
+
+This section documents how to configure the Chrome DevTools MCP server and the Playwright MCP server across the three CLI agent systems used in this project.
+
+### Prerequisites
+
+- Node.js 20+ and npm
+- Chrome 136+ (Chrome 144+ recommended for `--autoConnect` support)
+- Launch Chrome with remote debugging **before** running any agent that uses the DevTools MCP:
+
+```powershell
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+  --remote-debugging-port=9222 `
+  --user-data-dir="$env:TEMP\codex-chrome-smpt" `
+  about:blank
+```
+
+Verify Chrome is debuggable: open `http://127.0.0.1:9222/json/version` in a browser.
+
+---
+
+### Package Names
+
+| Server | NPM Package |
+|--------|-------------|
+| Playwright MCP | `@playwright/mcp` |
+| Chrome DevTools MCP | `chrome-devtools-mcp` |
+
+---
+
+### Claude Code
+
+Config files (choose one scope):
+
+| Scope | Path |
+|-------|------|
+| Project (shared, commit to git) | `.mcp.json` at project root |
+| User (global, personal only) | `~/.claude.json` |
+
+**`.mcp.json` structure:**
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://localhost:9222"]
+    }
+  }
+}
+```
+
+Or add via CLI:
+
+```bash
+claude mcp add --transport stdio --scope project playwright -- npx -y @playwright/mcp
+claude mcp add --transport stdio --scope project chrome-devtools -- npx -y chrome-devtools-mcp@latest --browserUrl http://localhost:9222
+```
+
+---
+
+### OpenAI Codex CLI
+
+Config file: `~/.codex/config.toml` (global) or `.codex/config.toml` (project, trusted projects only).
+Format: **TOML** (not JSON).
+
+```toml
+[mcp_servers.playwright]
+command = "npx -y @playwright/mcp"
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+enabled = true
+
+[mcp_servers.chrome_devtools]
+command = "npx -y chrome-devtools-mcp@latest --browserUrl http://localhost:9222"
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+enabled = true
+```
+
+Manage via interactive CLI:
+
+```bash
+codex mcp         # interactive menu
+codex mcp add <name>
+codex mcp remove <name>
+```
+
+---
+
+### Google Gemini CLI
+
+Config files:
+
+| Scope | Path |
+|-------|------|
+| Global | `~/.gemini/settings.json` |
+| Project | `.gemini/settings.json` |
+
+**`settings.json` structure:**
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://localhost:9222"]
+    }
+  }
+}
+```
+
+Enable/disable during a session:
+
+```
+/mcp enable chrome-devtools
+/mcp disable chrome-devtools
+```
+
+---
+
+### Quick Comparison
+
+| Feature | Claude Code | Codex CLI | Gemini CLI |
+|---------|-------------|-----------|------------|
+| Config format | JSON | TOML | JSON |
+| Global config | `~/.claude.json` | `~/.codex/config.toml` | `~/.gemini/settings.json` |
+| Project config | `.mcp.json` | `.codex/config.toml` | `.gemini/settings.json` |
+| Env var expansion | Yes (`${VAR}`) | No | No |
+
+---
 
 ## First-Time Machine Bootstrap (No Guesswork)
 
